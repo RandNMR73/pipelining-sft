@@ -1,9 +1,8 @@
 # Model Configuration
 model:
   name: "deepseek-ai/DeepSeek-V3"
-  cache_dir: "/path/to/cache/dir" 
-  model_dir: "/path/to/your/deepseek/checkpoints"
-  config_path: "./configs/model_config.json"
+  model_dir: "/path/to/your/deepseek/checkpoints" 
+  config_path: "models/deepseek_v3/model_config.json"
   
   dtype: "bfloat16"  # default dtype for training 
   

@@ -437,8 +437,8 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(
         config.model['name'],
         token=os.environ.get("HF_TOKEN", ""),
-        cache_dir=config.dataset['cache_dir'], 
-        local_files_only=True
+        cache_dir=config.model['model_dir'], 
+        local_files_only=False
     )
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
