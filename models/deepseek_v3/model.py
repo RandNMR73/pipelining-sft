@@ -380,7 +380,7 @@ class Transformer(nn.Module):
         )
 
         if new_num_tokens > old_num_tokens and not mean_resizing:
-            raise NotImplementedError(f"We dont support non mean resizing of embeddings...")
+            raise NotImplementedError(f"We don't support non mean resizing of embeddings...")
             self._init_weights(new_embeddings)
 
         elif new_num_tokens > old_num_tokens and mean_resizing:
@@ -481,7 +481,7 @@ class Transformer(nn.Module):
         )
 
         if new_num_tokens > old_num_tokens and not mean_resizing:
-            raise NotImplementedError(f"We dont support non mean resizing of embeddings...")
+            raise NotImplementedError(f"We don't support non mean resizing of embeddings...")
             self._init_weights(new_lm_head)
 
         elif new_num_tokens > old_num_tokens and mean_resizing:

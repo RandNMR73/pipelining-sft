@@ -75,7 +75,7 @@ def functional_fp8_linear(x: torch.Tensor, weight, bias=None) -> torch.Tensor:
     Returns:
         torch.Tensor: output from custom FP8 GEMM
     """
-    assert bias is None, "We dont expect bias"
+    assert bias is None, "We don't expect bias"
 
     return FP8Linear.apply(x, weight)
 
@@ -447,7 +447,7 @@ class Linear(nn.Linear):
     """
 
     def __init__(self, in_features: int, out_features: int, bias: bool = False):
-        assert not bias, f"we dont support bias!"
+        assert not bias, f"we don't support bias!"
         super().__init__(in_features, out_features, bias, dtype=torch.float32)
 
         self.register_parameter("bias", None)

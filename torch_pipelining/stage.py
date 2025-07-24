@@ -532,7 +532,7 @@ class _PipelineStageBase(ABC):
                                             device=device,
                                             requires_grad=requires_grad)
                 else:
-                    print(f"wtf is {a}")
+                    pass
         ## now reset the output metas
         if self._outputs_meta is not None and batch_seqlen is not None:
             new_output_meta = []
@@ -552,7 +552,7 @@ class _PipelineStageBase(ABC):
                         new_output_meta.append(torch.empty(new_shape, device=meta_tensor.device, dtype=meta_tensor.dtype))
                 elif len(orig_shape) == 1:
                     ## this is for loss which is (b)
-                    new_output_meta.append(meta_tensor) ## dont change shape
+                    new_output_meta.append(meta_tensor) ## don't change shape
                     ## 
             self._outputs_meta = tuple(new_output_meta)
 
@@ -576,8 +576,6 @@ class _PipelineStageBase(ABC):
                                             dtype=dtype,
                                             device=device,
                                             requires_grad=requires_grad)
-                else:
-                    print(f"wtf is {a}")
 
     def _map_tensor_from_recv_info(
         self,
@@ -882,7 +880,7 @@ class _PipelineStageBase(ABC):
                         "input", bwd_kwargs, last_backward=last_backward
                     )
 
-                # TODO: we dont need to save this, add to dw_runner?
+                # TODO: we don't need to save this, add to dw_runner?
                 self.backward_state[bwd_chunk_id] = (
                     bwd_kwargs["input_values"],
                     param_groups,

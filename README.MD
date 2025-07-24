@@ -1,6 +1,6 @@
 # Pipelining-SFT
 
-**Controbutors**: [Chetwin Low](https://www.linkedin.com/in/chetwin-low-061975193) [Weimin Wang](https://www.linkedin.com/in/weimin-wang-will)
+**Contributors**: [Chetwin Low](https://www.linkedin.com/in/chetwin-low-061975193) [Weimin Wang](https://www.linkedin.com/in/weimin-wang-will)
 
 
 A simple yet efficient full-parameter SFT framework for large-scale LLMs with MoE, supporting pipeline parallelism, expert parallelism, and tensor parallelism. This started as an experimental project—with more features coming soon—and welcomes collaboration. It is also suitable for production-scale SFT workloads.
@@ -33,11 +33,11 @@ This repository provides an end-to-end fine-tuning framework, using DeepSeek V3 
   - FP32 → FP8 block-quantized checkpoint: 630 GB  
 
 - **Torch Modifications**:  
-  - `torch_pipelining` contains modified files from `torch.distributed.pipelining` to support dynamic batchsizes, reduced memory bubbles, etc. 
+  - `torch_pipelining` contains modified files from `torch.distributed.pipelining` to support dynamic batch sizes, reduced memory bubbles, etc. 
 
 ---
 ## Hardware Configuration
-This training framework was built with the following per-node hardware configurations. Our training cluster leverages GPUDirect-TCPX for high speed internode communication, and 
+This training framework was built with the following per-node hardware configurations. Our training cluster leverages GPUDirect-TCPX for high-speed internode communication. 
 
 | Component  | Specification/Version       | Command to View Details  |  
 |------------|-----------------------------|--------------------------| 
@@ -65,7 +65,7 @@ pip install flash_attn==2.8.1
 
 # install DeepGEMM
 git clone --recursive git@github.com:deepseek-ai/DeepGEMM.git
-cd DeepGEEM
+cd DeepGEMM
 git checkout 03d0be3d2d03b6eed3c99d683c0620949a13a826 # important - needs to go back to previous commit 
 
 python setup.py install
@@ -114,8 +114,8 @@ We implemented a custom **Mixed Precision AdamW** (`mp_adamw.py`) that:
 - Introduces minimal memory overhead
 - Keeps training speed nearly unchanged
 - Enables stable convergence at very low learning rates where standard AdamW fails
-- DeepSeek technical report demonstrates full precision master weights is required for loss convergence, and lower precision optimizer states is sufficient, which also saves alot of GPU memory. We empirically validated this claim.
-- However, native PyTorch Adam Optimzer forces optimizer states to be in same precision as parameter dtype, which incurs high GPU consumption, thus to support lower precision optimizer states with full precision master weights, we made small but vital changes to PyTorch's official AdamW implementation (Torch 2.6) 
+- DeepSeek technical report demonstrates full precision master weights is required for loss convergence, and lower precision optimizer states is sufficient, which also saves a lot of GPU memory. We empirically validated this claim.
+- However, native PyTorch Adam Optimizer forces optimizer states to be in same precision as parameter dtype, which incurs high GPU consumption, thus to support lower precision optimizer states with full precision master weights, we made small but vital changes to PyTorch's official AdamW implementation (Torch 2.6) 
 
 #### 📈 Training Stability Comparison:
 
@@ -130,9 +130,9 @@ Added `grad_sync` functions in both **MLA** and **MoE** layers, helping to preve
 
 In our development of our multi-parallelism training framework, we noticed some interesting properties of Deepseek's MLA and MoEs trained with Expert Parallel, specifically related to gradient divergence in the backward if not handled precisely.
 
-1. MLA: It uses shared learnable position embeddings (k_pe) across attention heads for K projections, which means that when Tensor-Parallel (TP) is enabled for attention, k_pe receives different gradients in the backward pass for different set of attention heads and thus if we do not add backward hooks to sync gradients for k_pe, the gradients will start to diverge across replicated parameters within the TP group.
+1. MLA: It uses shared learnable position embeddings (k_pe) across attention heads for K projections, which means that when Tensor-Parallel (TP) is enabled for attention, k_pe receives different gradients in the backward pass for different sets of attention heads and thus if we do not add backward hooks to sync gradients for k_pe, the gradients will start to diverge across replicated parameters within the TP group.
 
-2. MoE: Most MoE forward implementations use indices masking to efficiently run experts on selected tokens and accumulate the results coupled with the corresponding expert weight in an output tensor. Due to the non determinism of PyTorch's matrix operations, there will be differences in gradients for replicated parameters within Expert Parallel group. Hence we require 2 explicit gradient hooks in the backward for a single MoE layer.
+2. MoE: Most MoE forward implementations use indices masking to efficiently run experts on selected tokens and accumulate the results coupled with the corresponding expert weight in an output tensor. Due to the non-determinism of PyTorch's matrix operations, there will be differences in gradients for replicated parameters within Expert Parallel group. Hence we require 2 explicit gradient hooks in the backward for a single MoE layer.
 
 An alternative implementation would be to explicitly sync all replicated parameters within the TP and/or EP group at the end of the backward, but we chose to implement with grad_sync since it looks cleaner.
 
@@ -148,4 +148,4 @@ An alternative implementation would be to explicitly sync all replicated paramet
 | 128              | 2k             | 27s            |
 | 64               | 4k             | 27s            |
 
-*Slower than Infiniband
+*Slower than InfiniBand

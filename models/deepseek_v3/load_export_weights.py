@@ -334,22 +334,17 @@ def load_pipeline_weights(
                     scale_tensor = scale_tensor.contiguous()
                     
                     # Dequantize - use FP32 if this is an FP8 Linear layer weight
-                    #if should_load_in_fp32(model_name, model, use_fp8_training):
                     if use_fp8_training:
                         tensor = weight_dequant(tensor, scale_tensor, block_size=block_size, dtype=torch.float32)
-                        #print(f"Loading {model_name} in FP32 for FP8 training (dequantized from FP8)")
                     else:
                         tensor = weight_dequant(tensor, scale_tensor, block_size=block_size)
                 else:
-                    #print(f"Warning: No scale found for FP8 weight {hf_name}, skipping dequantization")
-                    #if should_load_in_fp32(model_name, model, use_fp8_training):
                     if use_fp8_training:
                         tensor = tensor.to(device, dtype=torch.float32)
                     else:
                         tensor = tensor.to(device)
             else:
                 # For non-FP8 tensors, check if they should be loaded in FP32
-                #if should_load_in_fp32(model_name, model, use_fp8_training):
                 if use_fp8_training:
                     tensor = tensor.to(device, dtype=torch.float32)
                     print(f"Loading {model_name} in FP32 for FP8 training (standard tensor)")
@@ -386,7 +381,6 @@ def load_pipeline_weights(
                     elif parts[i] == "experts" and i + 1 < len(parts):
                         # Get the expert
                         expert_idx = int(parts[i + 1])
-                        #expert_idx_mod = expert_idx % total_experts_this_model
                         param = param.experts[expert_idx]
                         if param is None: # for EP layers where experts are not defined
                             break
@@ -568,7 +562,7 @@ def export_tp_pp_stage_to_hf_format_with_experts(
     if use_fp8_quantization:
         assert all(
             [p.dtype == torch.float32 or hasattr(p, "fp_param") for p in model.parameters()]
-        ), f"you want to fp8 quantize but you dont have fp params... RED FLAG"
+        ), f"you want to fp8 quantize but you don't have fp params... RED FLAG"
 
     # Prepare state dicts
     state_dict = {}  # For non-expert weights (rank 0 only)

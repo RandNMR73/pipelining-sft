@@ -118,7 +118,6 @@ class MPAdamW(torch.optim.AdamW):
                 state["exp_avg"] = torch.zeros_like(p.to(self.state_dtype), memory_format=torch.preserve_format)
                 # Exponential moving average of squared gradient values
                 state["exp_avg_sq"] = torch.zeros_like(p.to(self.state_dtype), memory_format=torch.preserve_format)
-                # print(state["exp_avg_sq"].dtype, state["exp_avg"].dtype)
                 if group["amsgrad"]:
                     raise NotImplementedError("AMSGRAD NOT IMPLEMENTED")
                     # Maintains max of all exp. moving avg. of sq. grad. values
@@ -184,8 +183,6 @@ class MPAdamW(torch.optim.AdamW):
                 max_exp_avg_sqs,
                 state_steps,
             )
-            # print(f"p_with_grad dtype: {[x.dtype for x in params_with_grad]}")
-            # print(f"grad dtype: {[x.dtype for x in grads]}")
             adamw(
                 params_with_grad,
                 grads,
@@ -292,7 +289,6 @@ def _single_tensor_adamw(
 
         device = param.device
         dtype = param.dtype
-        # print(f"in staw {dtype=}")
 
         if beta1_dict is not None:
             dtype = param.dtype  # type: ignore[union-attr]
