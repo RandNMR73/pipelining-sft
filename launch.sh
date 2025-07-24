@@ -7,14 +7,13 @@
 #SBATCH --time=6-00:00:00
 #SBATCH --partition=high
 
-# Get master node IP address (not just hostname)
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1 | xargs -I{} getent hosts {} | awk '{ print $1 }')
 export MASTER_PORT=29500
 
 echo "Master node IP: $MASTER_ADDR"
 echo "Total nodes: $SLURM_NNODES"
 
-# Run on each node with proper conda activation
+# Run on each node with conda env! 
 srun --ntasks=${SLURM_NNODES} --ntasks-per-node=1 bash -c '
   source ~/.bashrc
   eval "$(conda shell.bash hook)"

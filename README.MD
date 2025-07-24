@@ -1,6 +1,6 @@
 # Pipelining-SFT
 
-**Authors & Core Controbutors**: [Chetwin Low](https://www.linkedin.com/in/chetwin-low-061975193) [Weimin Wang](https://www.linkedin.com/in/weimin-wang-will)
+**Controbutors**: [Chetwin Low](https://www.linkedin.com/in/chetwin-low-061975193) [Weimin Wang](https://www.linkedin.com/in/weimin-wang-will)
 
 
 A simple yet efficient full-parameter SFT framework for large-scale LLMs with MoE, supporting pipeline parallelism, expert parallelism, and tensor parallelism. This started as an experimental project—with more features coming soon—and welcomes collaboration. It is also suitable for production-scale SFT workloads.
@@ -22,7 +22,7 @@ This repository provides an end-to-end fine-tuning framework, using DeepSeek V3 
 - **Mixed Precision AdamW**:  
   - Custom `mp_adamw.py` for BF16 training with FP32 master weights
 
-- **FP8 Training(Experimental)**
+- **FP8 Training (Experimental)**
   - Leveraging [DeepGEMM](https://github.com/deepseek-ai/DeepGEMM) for fp8 linear layers, with custom triton kernels
 
 - **Training Stability**:  
@@ -31,9 +31,8 @@ This repository provides an end-to-end fine-tuning framework, using DeepSeek V3 
 - **Checkpointing**:
   - BF16 checkpoint: 1.3 TB  
   - FP32 → FP8 block-quantized checkpoint: 630 GB  
-  - FP8 training support coming soon!
 
-- **🔧 Torch Modifications**:  
+- **Torch Modifications**:  
   - `torch_pipelining` contains modified files from `torch.distributed.pipelining` to support dynamic batchsizes, reduced memory bubbles, etc. 
 
 ---
@@ -86,18 +85,23 @@ The `launch.sh` script sets up your machines and uses SLURM to launch your job a
 Training configuration is located in `configs/train.yaml` — please adjust according to your task.
 
 Some explanations within `configs/train.yaml`: 
- - `model.model_dir` - download and save weights in huggingface formats https://huggingface.co/deepseek-ai/DeepSeek-V3/tree/main
- - `model.fp8_training.enabled` - if True, will enable fp8 training (experimental) 
- - `checkpoint.use_fp8_quantization` - whether to quantize the weights to fp8 during saving. Using fp8 training will make fp8 checkpointing more accurate than bf16 training. 
- - `checkpoint.save_dir` - directory to save the checkpoints. It can be a local path to a NFS (e.g. '/data/...') or a GCS path (e.g. 'gs://...'). GCS path will be recommended for stable multiprocess writing. 
- - `checkpoint.local_output_dir` - local directory used for temporally saved checkpoints and files 
- - `distributed.num_microbatches` - number of microbatches for PP training. Should be multiples of `pp_size`
- - `distributed.pp_size` - total number of PP stages to use. Can be 32, or 61 (i.e. each DS layer is a PP stage)
 
-### ⚙️ Sharding Strategy
+- model: 
+  - `model.model_dir` - download and save weights in huggingface formats https://huggingface.co/deepseek-ai/DeepSeek-V3/tree/main
+  - `model.fp8_training.enabled` - if True, will enable fp8 training (experimental) 
 
-- `total_batch_size = micro_batch_size_on_each_pp_stage × total_stages`
-- Data parallelism is currently disabled (`dp_size`==1); may be added later
+- checkpointing: 
+  - `checkpoint.use_fp8_quantization` - whether to quantize the weights to fp8 during saving. Recommended to use only for fp8 training. 
+  - `checkpoint.save_dir` - directory to save the checkpoints. 
+    - It can be a local path to a **NFS** (e.g. '/data/...') or a **GCS** path (e.g. 'gs://...'). 
+    - **GCS** path will be recommended for stable multiprocess writing. 
+  - `checkpoint.local_output_dir` - local directory used for temporally saved checkpoints and files, before being copied to `save_dir`
+
+- distributed: 
+  - `distributed.num_microbatches` - number of microbatches for PP training. Should be multiples of `pp_size`
+  - `distributed.pp_size` - total number of PP stages to use. Can be 32, or 61 (i.e. each DS layer is a PP stage)
+  - `total_batch_size = micro_batch_size_on_each_pp_stage × total_stages`
+  - Data parallelism is currently disabled (`dp_size`==1); may be added later
 
 ---
 
