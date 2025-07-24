@@ -1,0 +1,82 @@
+# Model Configuration
+model:
+  name: "deepseek-ai/DeepSeek-V3"
+  cache_dir: "/path/to/cache/dir" 
+  model_dir: "/path/to/your/deepseek/checkpoints"
+  config_path: "./configs/model_config.json"
+  
+  dtype: "bfloat16"  # default dtype for training 
+  
+  # FP8 Training Configuration
+  fp8_training:
+    enabled: false  # Set to true to enable FP8 training
+
+# Training Configuration
+training:
+  eval_only: false # if True, will do evaluation only and skip training 
+
+  total_batch_size: 128 # must be multiple of pp_size; micro_batch_size == total_batch_size / num_microbatches
+  eval_batch_size: 32 # must be multiple of pp_size!
+  gradient_accumulation_steps: 1
+  max_sequence_length: 2048
+  learning_rate: 1e-7
+
+  gradient_checkpointing: true
+
+  num_epochs: 1
+  num_training_steps: 1000 # total max training steps
+  eval_steps: 50 # evaluate every `eval_steps` steps
+  # Validation settings
+  max_eval_batches: 30   # Limit validation to `max_eval_batches` batches for speed
+  
+  # Optimizer
+  optimizer:
+    type: MPAdamW #AdamW or MPAdamW
+    betas:
+      - 0.9
+      - 0.999
+    eps: 1e-8
+    foreach: false
+    weight_decay: 0.01
+
+  # Gradient clipping
+  gradient_clip_norm: 1.0
+
+# Dataset Configuration
+dataset:
+  name: "HuggingFaceH4/ultrachat_200k"
+  train_split: "train_sft" # 207865
+  eval_split: "test_sft" # 23110
+  cache_dir: "/path/to/cache/dir"
+  num_workers: 4
+  
+  # Data limits
+  max_train_samples: null  # Use all training samples
+  max_eval_samples: 1000   # Limit validation samples for speed
+
+  # mmlu 
+  use_mmlu_for_eval: true  # if true, will use MMLU for evaluation
+  
+# Distributed Configuration
+distributed:
+  pp_size: 32  # total number of PP stages 
+  tp_ep_size: 8   # tp_ep_size should always be 8 which is number of chips in a node - both tp and ep will be sharded across the same chips
+  dp_size: 1   # dp_size is always 1 for 32-node training
+  num_microbatches: 32  # Will be set to pp_size 
+  schedule_type: "interleaved_1f1b"  # or "gpipe"
+  
+# Checkpoint Configuration
+checkpoint:
+  save_dir: "gs://path/to/save/checkpoints" # final gcs path for checkpointing all model weights shards
+  save_interval: 600 # save checkpoints every `save_interval` steps - the checkpoints are very large! 
+  local_output_dir: "/path/to/local/temporal/dir" # model ckpt shards will be temporarily saved here and removed after uploading, so make sure it has enough space!
+  use_fp8_quantization: false # to convert to fp8 using block quantization directly during saving; this might lose precision unless it is fp8 training! 
+  
+# Logging Configuration
+logging:
+  log_interval: 2
+  wandb:
+    enabled: true
+    project: "deepseek-v3-training"
+    run_name: deepseek_v3_bf16_training
+    entity: null  # Set your WandB entity/username here
