@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, Tuple, List
 from tqdm import tqdm 
 import torch.distributed as dist
 
-class UltraChatDataset(torch.utils.data.Dataset):
+class SimpleChatDataset(torch.utils.data.Dataset):
     """UltraChat dataset for supervised fine-tuning"""
     
     def __init__(self, dataset, tokenizer, max_length=2048):
@@ -139,7 +139,7 @@ def create_dataloader(config: Config, tokenizer, is_train: bool = True):
         dataset = dataset.select(range(min(len(dataset), config.dataset['max_eval_samples'])))
     
     # Create dataset wrapper
-    dataset = UltraChatDataset(dataset, tokenizer, config.training['max_sequence_length'])
+    dataset = SimpleChatDataset(dataset, tokenizer, config.training['max_sequence_length'])
     
     # Create regular dataloader WITHOUT DistributedSampler
     # All ranks will see the same batches in the same order
