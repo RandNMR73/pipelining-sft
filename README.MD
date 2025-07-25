@@ -22,7 +22,7 @@ This repository provides an end-to-end fine-tuning framework, using DeepSeek V3 
 - **Mixed Precision AdamW**:  
   - Custom `mp_adamw.py` for BF16 training with FP32 master weights
 
-- **FP8 Training (Experimental)**
+- **FP8 Mixed Precision Training (Experimental)**
   - Leveraging [DeepGEMM](https://github.com/deepseek-ai/DeepGEMM) for fp8 linear layers, with custom triton kernels
 
 - **Training Stability**:  
@@ -54,7 +54,7 @@ This training framework was built with the following per-node hardware configura
 ### 1. Clone the repo & set up the environment:
 
 ```bash
-git clone https://github.com/aaxwaz/pipelining-sft
+git clone https://github.com/character-ai/pipelining-sft.git
 
 conda create -n simple-pp python=3.11 -y
 conda activate simple-pp
@@ -66,7 +66,8 @@ pip install flash_attn==2.8.1
 # install DeepGEMM
 git clone --recursive git@github.com:deepseek-ai/DeepGEMM.git
 cd DeepGEMM
-git checkout 03d0be3d2d03b6eed3c99d683c0620949a13a826 # important - needs to go back to previous commit 
+# important - we implemented FP8 Training based on an older version of DeepGEMM, before a very recent non-trivial restructure of DeepGEMM
+git checkout 03d0be3d2d03b6eed3c99d683c0620949a13a826
 
 python setup.py install
 
@@ -75,7 +76,41 @@ python setup.py install
 ---
 
 ## ⚡ Quick Start
+1. 📥 Download the Model and Tokenizer
+Before training, you need to download the pretrained model and tokenizer from Hugging Face into a local cache directory.
 
+```bash 
+cd pipelining-sft  # Navigate to project directory
+
+python3 download_model.py \
+  --model_id "deepseek-ai/DeepSeek-V3-0324" \
+  --cache_dir "/home/<user>/hf_cache"
+```
+
+✅ After the download completes, the script will print a message like:
+
+```bash
+📦 Model snapshot directory: /home/<user>/hf_cache/models--.../snapshots/<hash>
+```
+
+✍️ Copy that path and set it as the value for `model.model_dir` in your training config file:
+`configs/train.yaml`.
+
+
+🧰 Alternative Option
+
+Alternatively, you can manually download the model and tokenizer files from Hugging Face and place them into a directory that contains the full checkpoint and tokenizer. Then, in `configs/train.yaml`, set:
+
+```bash
+model:
+  model_dir: /path/to/your/downloaded/checkpoint
+```
+
+Ensure the directory includes all required files (e.g., config.json, pytorch_model.bin, tokenizer.json, etc.).
+
+
+
+2. 🚀 Launch Training
 ```bash
 sbatch launch.sh
 ```
@@ -87,7 +122,7 @@ Training configuration is located in `configs/train.yaml` — please adjust acco
 Some explanations within `configs/train.yaml`: 
 
 - model: 
-  - `model.model_dir` - download and save weights in huggingface formats https://huggingface.co/deepseek-ai/DeepSeek-V3-0324/tree/main
+  - `model.model_dir` - this is the directory where the pretrained model should be installed to
   - `model.fp8_training.enabled` - if True, will enable fp8 training (experimental) 
 
 - checkpointing: 
@@ -102,6 +137,10 @@ Some explanations within `configs/train.yaml`:
   - `distributed.pp_size` - total number of PP stages to use. Can be 32, or 61 (i.e. each DS layer is a PP stage)
   - `total_batch_size = micro_batch_size_on_each_pp_stage × total_stages`
   - Data parallelism is currently disabled (`dp_size`==1); may be added later
+
+- dataset:
+  - `dataset.name` - either name of dataset repository on the HF hub like [HuggingFaceH4/ultrachat_200k](https://huggingface.co/datasets/HuggingFaceH4/ultrachat_200k) or path of a local directory that is compatible with `load_dataset` from `datasets`.
+  - We use a chat dataset "HuggingFaceH4/ultrachat_200k" that uses a [SimpleChatDataset](https://github.com/character-ai/pipelining-sft/blob/main/data.py#L9), if you want to use a custom dataset with custom formatter, please prepare it in an `datasets` compatible format and define a custom class or function for formatting if required. 
 
 ---
 
@@ -132,7 +171,7 @@ In our development of our multi-parallelism training framework, we noticed some 
 
 1. MLA: It uses shared learnable position embeddings (k_pe) across attention heads for K projections, which means that when Tensor-Parallel (TP) is enabled for attention, k_pe receives different gradients in the backward pass for different sets of attention heads and thus if we do not add backward hooks to sync gradients for k_pe, the gradients will start to diverge across replicated parameters within the TP group.
 
-2. MoE: Most MoE forward implementations use indices masking to efficiently run experts on selected tokens and accumulate the results coupled with the corresponding expert weight in an output tensor. Due to the non-determinism of PyTorch's matrix operations, there will be differences in gradients for replicated parameters within Expert Parallel group. Hence we require 2 explicit gradient hooks in the backward for a single MoE layer.
+2. MoE: Most MoE forward implementations use indices masking to efficiently run experts on selected tokens and accumulate the results coupled with the corresponding expert weight in an output tensor. Due to the numerical accuracy issue of [PyTorch's matrix operations](https://docs.pytorch.org/docs/stable/notes/numerical_accuracy.html), there will be differences in gradients for replicated parameters within Expert Parallel group. Hence we require 2 explicit gradient hooks in the backward for a single MoE layer.
 
 An alternative implementation would be to explicitly sync all replicated parameters within the TP and/or EP group at the end of the backward, but we chose to implement with grad_sync since it looks cleaner.
 
@@ -141,7 +180,21 @@ An alternative implementation would be to explicitly sync all replicated paramet
 > Green = with grad_sync, Orange = not using grad_sync  
 > without using grad_sync, training is becoming unstable with grad_norm exploding and loss curves a bit higher
 
-### 3. Training Speed (H100 with GPUDirect-TCPX* Benchmark) on 32 nodes
+### 3. FP8 Mixed Precision Training (Experimental)
+One major issue with bf16 training is that serving becomes expensive. Just the model loading of a bf16 version of DeepSeek V3 requires 1.3Tb of GPU VRAMM, which requires multiple nodes for 1 instance, even with H200s. Considering that even the fastest internode communication is vastly slower than intranode communication, multi-node deployments are much more expensive than single node ones.
+
+As such, we enable `use_fp8_quantization` to export our finetuned checkpoints in fp8 with DeepSeek's official block-wise quantization algorithm. However, we noticed that without proper Quantization Aware Training (QAT), naive export-time quantization severely negates the effects of the finetuning, i.e the changes in the model parameters largely revert back to the initial values. 
+
+To solve the problem, We decided to implement the fp8 mixed precision training described in DeepSeek technical report.
+
+
+![fp8 mixed precision in DeepSeek](graphs/deepseek_fp8.png)
+
+To support fp8 training, we use [DeepGEMM](https://github.com/deepseek-ai/DeepGEMM), which does efficient fp8 matmuls and fp32 accumulations to migate loss in precision. However, since DeepGEMM only provides efficient 
+kernels for the core matmul operation, while other aspects like quantizing activations and weights are not fused, which makes the entire fp8 linear layer very inefficient considering that these operations are relatively expensive. Naively, our custom fp8 linear class is roughly 10x slower than native pytorch bf16 linear class. We then implemented custom fused versions of these quanitization operations, and managed to get a 2-3x speed up, closing the gap between our fp8 custom linear and native pytorch's bf16 linear.
+
+
+### 4. Training Speed (H100 with GPUDirect-TCPX* Benchmark) on 32 nodes
 
 | Total Batch Size | Context Length | Iteration Time |
 |------------------|----------------|----------------|

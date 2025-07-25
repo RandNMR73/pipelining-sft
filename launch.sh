@@ -21,10 +21,7 @@ srun --ntasks=${SLURM_NNODES} --ntasks-per-node=1 bash -c '
   
   echo "[$SLURM_PROCID] Starting on $(hostname)"
   
-  export NCCL_DEBUG=INFO
-  export LD_LIBRARY_PATH=$CONDA_LIB_PATH/nvidia/nccl/lib:$LD_LIBRARY_PATH
-
-  NCCL_NET_PLUGIN=none python -m torch.distributed.run \
+  python -m torch.distributed.run \
     --nproc-per-node=8 \
     --nnodes='$SLURM_NNODES' \
     --node_rank=$SLURM_PROCID \
