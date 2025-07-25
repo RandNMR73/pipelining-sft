@@ -4,6 +4,7 @@ from datasets import load_dataset
 from train_utils import Config 
 from typing import Dict, Any, Optional, Tuple, List
 from tqdm import tqdm 
+import torch.distributed as dist
 
 class UltraChatDataset(torch.utils.data.Dataset):
     """UltraChat dataset for supervised fine-tuning"""
@@ -108,13 +109,28 @@ class MMLUDataset(torch.utils.data.Dataset):
 
 def create_dataloader(config: Config, tokenizer, is_train: bool = True):
     """Create dataloader for pipeline parallel training - all ranks see same data"""
+
+    rank = dist.get_rank() if dist.is_initialized() else 0
+
+    # Only rank 0 downloads and processes the dataset
+    if rank == 0:
+        dataset = load_dataset(
+            config.dataset['name'],
+            split=config.dataset['train_split'] if is_train else config.dataset['eval_split'],
+            cache_dir=config.dataset.get('cache_dir', "/mnt/localdisk/dataloader_cache")
+        )
+        print(f"Rank 0: Successfully loaded {'train' if is_train else 'eval'} dataset")
+
+    if dist.is_initialized():
+        dist.barrier()
     
-    # Load dataset
-    dataset = load_dataset(
-        config.dataset['name'],
-        split=config.dataset['train_split'] if is_train else config.dataset['eval_split'],
-        cache_dir=config.dataset.get('cache_dir', "/mnt/localdisk/dataloader_cache")
-    )
+    # Now all other ranks can safely load from cache
+    if rank != 0:
+        dataset = load_dataset(
+            config.dataset['name'],
+            split=config.dataset['train_split'] if is_train else config.dataset['eval_split'],
+            cache_dir=config.dataset.get('cache_dir', "/mnt/localdisk/dataloader_cache")
+        )
     
     # Limit samples if specified
     if is_train and config.dataset.get('max_train_samples'):
@@ -141,9 +157,19 @@ def create_dataloader(config: Config, tokenizer, is_train: bool = True):
 
 def create_mmlu_dataloader(config: Config, tokenizer):
     """Create MMLU evaluation dataloader"""
+
+    rank = dist.get_rank() if dist.is_initialized() else 0
+
+    if rank == 0:
+        # Load MMLU dataset
+        dataset = load_dataset("cais/mmlu", "all", split="test", cache_dir=config.dataset.get('cache_dir', "/mnt/localdisk/dataloader_cache"))
+
+    if dist.is_initialized():
+        dist.barrier()
     
-    # Load MMLU dataset
-    dataset = load_dataset("cais/mmlu", "all", split="test", cache_dir=config.dataset.get('cache_dir', "/mnt/localdisk/dataloader_cache"))
+    if rank != 0:
+        # Other ranks load from cache
+        dataset = load_dataset("cais/mmlu", "all", split="test", cache_dir=config.dataset.get('cache_dir', "/mnt/localdisk/dataloader_cache"))
     
     # Optionally limit the number of samples for faster evaluation
     max_samples = config.training.get('mmlu_max_samples', 1000)
