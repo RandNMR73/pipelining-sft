@@ -433,13 +433,29 @@ def main():
     else:
         wandb_initialized = False
 
-    # Initialize tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(
-        config.model['name'],
-        token=os.environ.get("HF_TOKEN", ""),
-        cache_dir=config.model['model_dir'], 
-        local_files_only=False
-    )
+    # Initialize tokenizer with proper synchronization
+    if rank == 0:
+        # Only rank 0 downloads the tokenizer
+        tokenizer = AutoTokenizer.from_pretrained(
+            config.model['name'],
+            token=os.environ.get("HF_TOKEN", ""),
+            cache_dir=config.model['model_dir'], 
+            local_files_only=False
+        )
+        print(f"Rank 0: Successfully downloaded tokenizer to {config.model['model_dir']}")
+
+    # Synchronize all ranks
+    dist.barrier()
+
+    # Now all other ranks can safely load from cache
+    if rank != 0:
+        tokenizer = AutoTokenizer.from_pretrained(
+            config.model['name'],
+            token=os.environ.get("HF_TOKEN", ""),
+            cache_dir=config.model['model_dir'], 
+            local_files_only=True  # This prevents downloading, only loads from cache
+        )
+
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
 
