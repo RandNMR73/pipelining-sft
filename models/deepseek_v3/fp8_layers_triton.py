@@ -95,7 +95,7 @@ class FP8Linear(torch.autograd.Function):
         x_fp8 = per_token_cast_to_fp8_triton(x)
         x_fp8 = (x_fp8[0].contiguous(), get_col_major_tma_aligned_tensor(x_fp8[1].contiguous()))
 
-        weight_fp8 = per_block_cast_to_fp8(weight)
+        weight_fp8 = per_block_cast_to_fp8_triton(weight)
         ctx.save_for_backward(x, weight)
         out_dim = weight.shape[0]
         # flattened
@@ -137,7 +137,7 @@ class FP8Linear(torch.autograd.Function):
             dy_fp8 = per_token_cast_to_fp8_triton(grad_output.contiguous())
             # dy_fp8 = per_token_cast_to_fp8(grad_output.contiguous())
             dy_fp8 = (dy_fp8[0].contiguous(), get_col_major_tma_aligned_tensor(dy_fp8[1].contiguous()))
-            weight_fp8 = per_block_cast_to_fp8(weight.t().contiguous())
+            weight_fp8 = per_block_cast_to_fp8_triton(weight.t().contiguous())
 
             grad_input = torch.zeros_like(x)
             deep_gemm.gemm_fp8_fp8_bf16_nt(dy_fp8, weight_fp8, grad_input)
