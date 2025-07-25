@@ -87,7 +87,7 @@ Training configuration is located in `configs/train.yaml` — please adjust acco
 Some explanations within `configs/train.yaml`: 
 
 - model: 
-  - `model.model_dir` - download and save weights in huggingface formats https://huggingface.co/deepseek-ai/DeepSeek-V3/tree/main
+  - `model.model_dir` - download and save weights in huggingface formats https://huggingface.co/deepseek-ai/DeepSeek-V3-0324/tree/main
   - `model.fp8_training.enabled` - if True, will enable fp8 training (experimental) 
 
 - checkpointing: 
