@@ -1,6 +1,6 @@
 # Model Configuration
 model:
-  name: "deepseek-ai/DeepSeek-V3"
+  name: "deepseek-ai/DeepSeek-V3-0324"
   model_dir: "/path/to/your/deepseek/checkpoints" 
   config_path: "models/deepseek_v3/model_config.json"
   
