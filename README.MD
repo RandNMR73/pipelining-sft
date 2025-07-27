@@ -193,12 +193,18 @@ To solve the problem, We decided to implement the fp8 mixed precision training d
 To support fp8 training, we use [DeepGEMM](https://github.com/deepseek-ai/DeepGEMM), which does efficient fp8 matmuls and fp32 accumulations to migate loss in precision. However, since DeepGEMM only provides efficient 
 kernels for the core matmul operation, while other aspects like quantizing activations and weights are not fused, which makes the entire fp8 linear layer very inefficient considering that these operations are relatively expensive. Naively, our custom fp8 linear class is roughly 10x slower than native pytorch bf16 linear class. We then implemented custom fused versions of these quanitization operations, and managed to get a 2-3x speed up, closing the gap between our fp8 custom linear and native pytorch's bf16 linear.
 
+![Larger BS with more nodes](graphs/compare_bs244_bs128.png)
+
+We can increase BS by increase total number of stages from 32 to 61 (there are 61 layers in DeepSeek V3). 
+
+We noticed that the increase in batch time is from 16s to 22s, while reducing the total training iters to half. 
 
 ### 4. Training Speed (H100 with GPUDirect-TCPX* Benchmark) on 32 nodes
 
-| Total Batch Size | Context Length | Iteration Time |
-|------------------|----------------|----------------|
-| 128              | 2k             | 27s            |
-| 64               | 4k             | 27s            |
+| Total Batch Size | Context Length | Iteration Time | GPU numbers 
+|------------------|----------------|----------------|----------------|
+| 128              | 2k             | 16s            | 32 x 8
+| 64               | 4k             | 16s            | 32 x 8
+| 244              | 2k             | 22s            | 61 x 8
 
 *Slower than InfiniBand
