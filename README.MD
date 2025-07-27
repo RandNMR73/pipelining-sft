@@ -135,7 +135,7 @@ Some explanations within `configs/train.yaml`:
 - distributed: 
   - `distributed.num_microbatches` - number of microbatches for PP training. Should be multiples of `pp_size`
   - `distributed.pp_size` - total number of PP stages to use. Can be 32, or 61 (i.e. each DS layer is a PP stage)
-  - `total_batch_size = micro_batch_size_on_each_pp_stage × total_stages`
+  - `total_batch_size = micro_batch_size_on_each_pp_stage × total_stages` - for example if we have 32 total PP stages, and micro batch size is 4 for each stage, the total batch size for each training iter will be 4 x 32 = 128. 
   - Data parallelism is currently disabled (`dp_size`==1); may be added later
 
 - dataset:
@@ -181,7 +181,7 @@ An alternative implementation would be to explicitly sync all replicated paramet
 > without using grad_sync, training is becoming unstable with grad_norm exploding and loss curves a bit higher
 
 ### 3. FP8 Mixed Precision Training (Experimental)
-One major issue with bf16 training is that serving becomes expensive. Just the model loading of a bf16 version of DeepSeek V3 requires 1.3Tb of GPU VRAMM, which requires multiple nodes for 1 instance, even with H200s. Considering that even the fastest internode communication is vastly slower than intranode communication, multi-node deployments are much more expensive than single node ones.
+One major issue with bf16 training is that serving becomes expensive. Just the model loading of a bf16 version of DeepSeek V3 requires 1.3Tb of GPU VRAM, which requires multiple nodes for 1 instance, even with H200s. Considering that even the fastest internode communication is vastly slower than intranode communication, multi-node deployments are much more expensive than single node ones.
 
 As such, we enable `use_fp8_quantization` to export our finetuned checkpoints in fp8 with DeepSeek's official block-wise quantization algorithm. However, we noticed that without proper Quantization Aware Training (QAT), naive export-time quantization severely negates the effects of the finetuning, i.e the changes in the model parameters largely revert back to the initial values. 
 
@@ -190,21 +190,24 @@ To solve the problem, We decided to implement the fp8 mixed precision training d
 
 ![fp8 mixed precision in DeepSeek](graphs/deepseek_fp8.png)
 
-To support fp8 training, we use [DeepGEMM](https://github.com/deepseek-ai/DeepGEMM), which does efficient fp8 matmuls and fp32 accumulations to migate loss in precision. However, since DeepGEMM only provides efficient 
-kernels for the core matmul operation, while other aspects like quantizing activations and weights are not fused, which makes the entire fp8 linear layer very inefficient considering that these operations are relatively expensive. Naively, our custom fp8 linear class is roughly 10x slower than native pytorch bf16 linear class. We then implemented custom fused versions of these quanitization operations, and managed to get a 2-3x speed up, closing the gap between our fp8 custom linear and native pytorch's bf16 linear.
+To support fp8 training, we use [DeepGEMM](https://github.com/deepseek-ai/DeepGEMM), which does efficient fp8 matmuls and fp32 accumulations to mitigate loss in precision. However, since DeepGEMM only provides efficient 
+kernels for the core matmul operation, while other aspects like quantizing activations and weights are not fused, which makes the entire fp8 linear layer very inefficient considering that these operations are relatively expensive. Naively, our custom fp8 linear class is roughly 10x slower than native pytorch bf16 linear class. We then implemented custom fused versions of these quantization operations, and managed to get a 2-3x speed up, closing the gap between our fp8 custom linear and native pytorch's bf16 linear.
 
-### 4. Training Speed (H100 with GPUDirect-TCPX* Benchmark) on 32 nodes
+### 4. Training Speed (H100 with GPUDirect-TCPX* Benchmark) on 32 nodes and 61 nodes 
 
 | Total Batch Size | Context Length | Iteration Time | GPU numbers 
 |------------------|----------------|----------------|----------------|
-| 128              | 2k             | 16s            | 32 x 8
-| 64               | 4k             | 16s            | 32 x 8
-| 244              | 2k             | 22s            | 61 x 8
+| 128              | 2k             | 16s            | 32 (nodes) x 8
+| 64               | 4k             | 16s            | 32 (nodes) x 8
+| 244              | 2k             | 22s            | 61 (nodes) x 8
 
 *Slower than InfiniBand
 
 ![Larger BS with more nodes](graphs/compare_bs244_bs128.png)
 
-We can increase BS by increasing total number of stages from 32 to 61 (there are 61 layers in DeepSeek V3). 
+> Green curve is using 61 (nodes) x 8 = 488 GPUs, with 61 x 4 = 244 BS; 
+> Brown curve is using 32 (nodes) x 8 = 256 GPUs, with 32 x 4 = 128 BS
 
-We noticed that the increase in batch iter time is only from 16s to 22s, while reducing the total training iters to half. 
+We can increase BS without gradient accumulation by increasing total number of stages (or nodes) from 32 to 61 (there are 61 layers in DeepSeek V3 so the maximum is 61) 
+
+We noticed that the increase in batch iter time is only from 16s to 22s, while we could almost double the batch size (reduce the total training iters to half). 
