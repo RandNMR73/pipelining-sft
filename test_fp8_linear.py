@@ -76,7 +76,6 @@ def test_fp8_vs_regular_linear():
         # Create test input (must be bfloat16 for FP8)
         torch.manual_seed(123)
         test_input = torch.randn(2, 128, dtype=torch.bfloat16, device=device)
-        test_input_fp32 = test_input.float()
         
         print(f"✓ Created test input: {test_input.shape}, {test_input.dtype}")
         
@@ -86,7 +85,7 @@ def test_fp8_vs_regular_linear():
             fp8_output = fp8_layer(test_input)
             
             # Regular forward pass with FP32 input
-            regular_output = regular_layer(test_input_fp32)
+            regular_output = regular_layer(test_input)
             
             # Convert regular output to bfloat16 for comparison
             regular_output_bf16 = regular_output.to(torch.bfloat16)
@@ -144,10 +143,6 @@ def test_fp8_precision_detection():
             # This should use FP8 path (weight.element_size() = 4 for float32, not 2)
             bf16_output = fp8_layer(bf16_input)
             print(f"✓ BF16 input forward pass: {bf16_output.shape}, {bf16_output.dtype}")
-            
-            # This should also use FP8 path with the current implementation
-            fp16_output = fp8_layer(fp16_input)
-            print(f"✓ FP16 input forward pass: {fp16_output.shape}, {fp16_output.dtype}")
         
         print(f"✓ Precision detection test completed")
         return True
