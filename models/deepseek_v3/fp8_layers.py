@@ -68,7 +68,7 @@ class FP8Linear(torch.autograd.Function):
         out_dim = weight.shape[0]
         # flattened
         out = torch.zeros((x.shape[0], out_dim), device=x.device, dtype=x.dtype)
-        deep_gemm.gemm_fp8_gemm_nt(x_fp8, weight_fp8, out)
+        deep_gemm.fp8_gemm_nt(x_fp8, weight_fp8, out)
         if len(shape) == 3:
             out = out.view(shape[0], shape[1], out_dim)
         return out
@@ -110,7 +110,7 @@ class FP8Linear(torch.autograd.Function):
             # ref_grad_input = grad_output.float() @ weight_dequant(weight, weight.scale).float()
 
             grad_input = torch.zeros_like(x)
-            deep_gemm.gemm_fp8_gemm_nt(dy_fp8, weight_fp8, grad_input)
+            deep_gemm.fp8_gemm_nt(dy_fp8, weight_fp8, grad_input)
 
             if len(shape) == 3:
                 in_dim = weight.shape[1]
