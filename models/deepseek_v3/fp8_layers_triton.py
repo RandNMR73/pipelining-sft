@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import triton
 import triton.language as tl
-from deep_gemm import calc_diff, ceil_div, get_col_major_tma_aligned_tensor
+from deep_gemm import calc_diff, ceil_div, get_mn_major_tma_aligned_tensor
 
 
 @triton.jit
@@ -93,14 +93,14 @@ class FP8Linear(torch.autograd.Function):
 
         # x_fp8 = per_token_cast_to_fp8(x)
         x_fp8 = per_token_cast_to_fp8_triton(x)
-        x_fp8 = (x_fp8[0].contiguous(), get_col_major_tma_aligned_tensor(x_fp8[1].contiguous()))
+        x_fp8 = (x_fp8[0].contiguous(), get_mn_major_tma_aligned_tensor(x_fp8[1].contiguous()))
 
         weight_fp8 = per_block_cast_to_fp8_triton(weight)
         ctx.save_for_backward(x, weight)
         out_dim = weight.shape[0]
         # flattened
         out = torch.zeros((x.shape[0], out_dim), device=x.device, dtype=x.dtype)
-        deep_gemm.gemm_fp8_fp8_bf16_nt(x_fp8, weight_fp8, out)
+        deep_gemm.gemm_fp8_gemm_nt(x_fp8, weight_fp8, out)
         if len(shape) == 3:
             out = out.view(shape[0], shape[1], out_dim)
         return out
@@ -124,8 +124,8 @@ class FP8Linear(torch.autograd.Function):
             # dy_fp8 = per_token_cast_to_fp8(grad_output.t().contiguous())  # c, l
             # x_fp8 = per_token_cast_to_fp8(x.t().contiguous())
             
-            # dy_fp8 = (dy_fp8[0].contiguous(), get_col_major_tma_aligned_tensor(dy_fp8[1].contiguous()))
-            # x_fp8 = (x_fp8[0].contiguous(), get_col_major_tma_aligned_tensor(x_fp8[1].contiguous()))
+            # dy_fp8 = (dy_fp8[0].contiguous(), get_mn_major_tma_aligned_tensor(dy_fp8[1].contiguous()))
+            # x_fp8 = (x_fp8[0].contiguous(), get_mn_major_tma_aligned_tensor(x_fp8[1].contiguous()))
 
 
             grad_weight = torch.zeros_like(weight, dtype=torch.float32)
@@ -136,11 +136,11 @@ class FP8Linear(torch.autograd.Function):
         if ctx.needs_input_grad[0]:
             dy_fp8 = per_token_cast_to_fp8_triton(grad_output.contiguous())
             # dy_fp8 = per_token_cast_to_fp8(grad_output.contiguous())
-            dy_fp8 = (dy_fp8[0].contiguous(), get_col_major_tma_aligned_tensor(dy_fp8[1].contiguous()))
+            dy_fp8 = (dy_fp8[0].contiguous(), get_mn_major_tma_aligned_tensor(dy_fp8[1].contiguous()))
             weight_fp8 = per_block_cast_to_fp8_triton(weight.t().contiguous())
 
             grad_input = torch.zeros_like(x)
-            deep_gemm.gemm_fp8_fp8_bf16_nt(dy_fp8, weight_fp8, grad_input)
+            deep_gemm.gemm_fp8_gemm_nt(dy_fp8, weight_fp8, grad_input)
 
             if len(shape) == 3:
                 in_dim = weight.shape[1]
