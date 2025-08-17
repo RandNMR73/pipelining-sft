@@ -61,7 +61,7 @@ def test_fp8_vs_regular_linear():
             in_features=128,
             out_features=256,
             bias=False,
-            dtype=torch.float32
+            dtype=torch.bfloat16
         ).to(device)
         
         # Copy weights for fair comparison
