@@ -7,11 +7,73 @@ import torch
 import torch.nn as nn
 import sys
 import os
+import time
+import numpy as np
 
 # Add the models directory to the path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from models.deepseek_v3.fp8_layers import Linear as FP8Linear, functional_fp8_linear
+
+def benchmark_tflops(layer, input_tensor, num_runs=100, warmup_runs=10):
+    """
+    Benchmark the TFLOPs of a linear layer.
+    
+    Args:
+        layer: The linear layer to benchmark
+        input_tensor: Input tensor for the layer
+        num_runs: Number of runs for averaging
+        warmup_runs: Number of warmup runs
+        
+    Returns:
+        dict: Dictionary containing timing and TFLOPs information
+    """
+    device = input_tensor.device
+    batch_size, seq_len, in_features = input_tensor.shape
+    out_features = layer.out_features
+    
+    # Calculate theoretical TFLOPs for one forward pass
+    # For matrix multiplication: 2 * batch_size * seq_len * in_features * out_features
+    theoretical_flops = 2 * batch_size * seq_len * in_features * out_features
+    theoretical_tflops = theoretical_flops / 1e12
+    
+    # Warmup runs
+    with torch.no_grad():
+        for _ in range(warmup_runs):
+            _ = layer(input_tensor)
+    
+    # Synchronize GPU if using CUDA
+    if device.type == 'cuda':
+        torch.cuda.synchronize()
+    
+    # Benchmark runs
+    start_time = time.time()
+    with torch.no_grad():
+        for _ in range(num_runs):
+            _ = layer(input_tensor)
+    
+    # Synchronize GPU if using CUDA
+    if device.type == 'cuda':
+        torch.cuda.synchronize()
+    
+    end_time = time.time()
+    
+    # Calculate timing and TFLOPs
+    total_time = end_time - start_time
+    avg_time_per_run = total_time / num_runs
+    flops_per_second = (theoretical_flops * num_runs) / total_time
+    tflops_per_second = flops_per_second / 1e12
+    
+    return {
+        'theoretical_tflops': theoretical_tflops,
+        'avg_time_per_run_ms': avg_time_per_run * 1000,
+        'total_time_s': total_time,
+        'tflops_per_second': tflops_per_second,
+        'flops_per_second': flops_per_second,
+        'num_runs': num_runs,
+        'input_shape': input_tensor.shape,
+        'output_shape': (batch_size, seq_len, out_features)
+    }
 
 def test_fp8_linear_creation():
     """Test that FP8 Linear layer can be created properly."""
@@ -61,7 +123,7 @@ def test_fp8_vs_regular_linear():
             in_features=128,
             out_features=256,
             bias=False,
-            dtype=torch.bfloat16
+            dtype=torch.float32
         ).to(device)
         
         # Copy weights for fair comparison
@@ -76,6 +138,7 @@ def test_fp8_vs_regular_linear():
         # Create test input (must be bfloat16 for FP8)
         torch.manual_seed(123)
         test_input = torch.randn(2, 128, dtype=torch.bfloat16, device=device)
+        test_input_fp32 = test_input.float()
         
         print(f"✓ Created test input: {test_input.shape}, {test_input.dtype}")
         
@@ -85,7 +148,7 @@ def test_fp8_vs_regular_linear():
             fp8_output = fp8_layer(test_input)
             
             # Regular forward pass with FP32 input
-            regular_output = regular_layer(test_input)
+            regular_output = regular_layer(test_input_fp32)
             
             # Convert regular output to bfloat16 for comparison
             regular_output_bf16 = regular_output.to(torch.bfloat16)
@@ -143,6 +206,10 @@ def test_fp8_precision_detection():
             # This should use FP8 path (weight.element_size() = 4 for float32, not 2)
             bf16_output = fp8_layer(bf16_input)
             print(f"✓ BF16 input forward pass: {bf16_output.shape}, {bf16_output.dtype}")
+            
+            # This should also use FP8 path with the current implementation
+            fp16_output = fp8_layer(fp16_input)
+            print(f"✓ FP16 input forward pass: {fp16_output.shape}, {fp16_output.dtype}")
         
         print(f"✓ Precision detection test completed")
         return True
@@ -218,6 +285,120 @@ def test_fp8_3d_input():
         print(f"✗ 3D input test failed: {e}")
         return False
 
+def benchmark_fp8_vs_regular_tflops():
+    """Benchmark TFLOPs performance of FP8 vs regular linear layers."""
+    print("\n=== Benchmarking FP8 vs Regular Linear TFLOPs ===")
+    
+    try:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        print(f"✓ Using device: {device}")
+        
+        # Test configurations
+        configs = [
+            {'batch_size': 1, 'seq_len': 512, 'in_features': 512, 'out_features': 512, 'name': 'Small'},
+            {'batch_size': 4, 'seq_len': 1024, 'in_features': 1024, 'out_features': 1024, 'name': 'Medium'},
+            {'batch_size': 8, 'seq_len': 2048, 'in_features': 2048, 'out_features': 2048, 'name': 'Large'},
+            {'batch_size': 16, 'seq_len': 4096, 'in_features': 4096, 'out_features': 4096, 'name': 'XL'},
+        ]
+        
+        results = []
+        
+        for config in configs:
+            print(f"\n--- {config['name']} Configuration ---")
+            print(f"Batch: {config['batch_size']}, Seq: {config['seq_len']}, "
+                  f"In: {config['in_features']}, Out: {config['out_features']}")
+            
+            # Create layers
+            fp8_layer = FP8Linear(
+                in_features=config['in_features'],
+                out_features=config['out_features'],
+                bias=False
+            ).to(device)
+            
+            regular_layer = nn.Linear(
+                in_features=config['in_features'],
+                out_features=config['out_features'],
+                bias=False,
+                dtype=torch.float32
+            ).to(device)
+            
+            # Copy weights for fair comparison
+            with torch.no_grad():
+                torch.manual_seed(42)
+                fp8_layer.weight.normal_(0, 0.02)
+                regular_layer.weight.copy_(fp8_layer.weight)
+            
+            # Create test inputs
+            fp8_input = torch.randn(
+                config['batch_size'], 
+                config['seq_len'], 
+                config['in_features'], 
+                dtype=torch.bfloat16, 
+                device=device
+            )
+            
+            regular_input = fp8_input.float()
+            
+            # Benchmark FP8 layer
+            print("Benchmarking FP8 layer...")
+            fp8_results = benchmark_tflops(fp8_layer, fp8_input, num_runs=50, warmup_runs=5)
+            
+            # Benchmark regular layer
+            print("Benchmarking regular layer...")
+            regular_results = benchmark_tflops(regular_layer, regular_input, num_runs=50, warmup_runs=5)
+            
+            # Calculate speedup
+            speedup = regular_results['tflops_per_second'] / fp8_results['tflops_per_second']
+            
+            # Store results
+            config_result = {
+                'config': config,
+                'fp8': fp8_results,
+                'regular': regular_results,
+                'speedup': speedup
+            }
+            results.append(config_result)
+            
+            # Print results for this configuration
+            print(f"FP8 Layer:")
+            print(f"  Time per run: {fp8_results['avg_time_per_run_ms']:.2f} ms")
+            print(f"  TFLOPs/s: {fp8_results['tflops_per_second']:.2f}")
+            print(f"  Theoretical TFLOPs: {fp8_results['theoretical_tflops']:.4f}")
+            
+            print(f"Regular Layer:")
+            print(f"  Time per run: {regular_results['avg_time_per_run_ms']:.2f} ms")
+            print(f"  TFLOPs/s: {regular_results['tflops_per_second']:.2f}")
+            print(f"  Theoretical TFLOPs: {regular_results['theoretical_tflops']:.4f}")
+            
+            print(f"Performance:")
+            print(f"  Speedup: {speedup:.2f}x ({'FP8 faster' if speedup < 1 else 'Regular faster'})")
+        
+        # Print summary
+        print("\n" + "="*60)
+        print("TFLOPs Benchmark Summary")
+        print("="*60)
+        
+        avg_speedup = np.mean([r['speedup'] for r in results])
+        print(f"Average speedup: {avg_speedup:.2f}x")
+        
+        if avg_speedup < 1:
+            print("🎯 FP8 layers are faster on average!")
+        else:
+            print("⚠️  Regular layers are faster on average")
+        
+        print("\nDetailed Results:")
+        for i, result in enumerate(results):
+            config = result['config']
+            print(f"{i+1}. {config['name']}: {result['speedup']:.2f}x speedup")
+        
+        return True
+        
+    except Exception as e:
+        print(f"✗ TFLOPs benchmarking failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 def main():
     """Run all tests."""
     print("FP8 Linear Layer Tests")
@@ -229,6 +410,7 @@ def main():
         test_fp8_precision_detection,
         test_fp8_batch_sizes,
         test_fp8_3d_input,
+        benchmark_fp8_vs_regular_tflops,
     ]
     
     results = []
