@@ -293,12 +293,12 @@ def benchmark_fp8_vs_regular_tflops():
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print(f"✓ Using device: {device}")
         
-        # Test configurations
+        # Test configurations matching the benchmark data
         configs = [
-            {'batch_size': 1, 'seq_len': 512, 'in_features': 512, 'out_features': 512, 'name': 'Small'},
-            {'batch_size': 4, 'seq_len': 1024, 'in_features': 1024, 'out_features': 1024, 'name': 'Medium'},
-            {'batch_size': 8, 'seq_len': 2048, 'in_features': 2048, 'out_features': 2048, 'name': 'Large'},
-            {'batch_size': 16, 'seq_len': 4096, 'in_features': 4096, 'out_features': 4096, 'name': 'XL'},
+            {'batch_size': 1, 'seq_len': 4096, 'in_features': 4096, 'out_features': 4096, 'name': '4K×4K'},
+            {'batch_size': 1, 'seq_len': 8192, 'in_features': 8192, 'out_features': 8192, 'name': '8K×8K'},
+            {'batch_size': 1, 'seq_len': 12288, 'in_features': 12288, 'out_features': 12288, 'name': '12K×12K'},
+            {'batch_size': 1, 'seq_len': 16384, 'in_features': 16384, 'out_features': 16384, 'name': '16K×16K'},
         ]
         
         results = []
