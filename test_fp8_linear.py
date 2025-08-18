@@ -309,17 +309,17 @@ def benchmark_fp8_vs_regular_tflops():
         
         for i, config in enumerate(configs):
             # Create layers
-            # fp8_layer = torch.compile(FP8Linear(
-            #     in_features=config['in_features'],
-            #     out_features=config['out_features'],
-            #     bias=False
-            # ).to(device))
-
-            fp8_layer = FP8Linear(
+            fp8_layer = torch.compile(FP8Linear(
                 in_features=config['in_features'],
                 out_features=config['out_features'],
                 bias=False
-            ).to(device)
+            ).to(device))
+
+            # fp8_layer = FP8Linear(
+            #     in_features=config['in_features'],
+            #     out_features=config['out_features'],
+            #     bias=False
+            # ).to(device)
             
             regular_layer = nn.Linear(
                 in_features=config['in_features'],
