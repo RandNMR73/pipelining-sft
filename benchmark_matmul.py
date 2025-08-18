@@ -15,6 +15,7 @@ import numpy as np
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from models.deepseek_v3.fp8_layers import per_token_cast_to_fp8, per_block_cast_to_fp8
+import deep_gemm
 
 def benchmark_matmul_tflops(x, weight, num_runs=100, warmup_runs=10, operation_name="MatMul"):
     """
@@ -43,11 +44,14 @@ def benchmark_matmul_tflops(x, weight, num_runs=100, warmup_runs=10, operation_n
     with torch.no_grad():
         for _ in range(warmup_runs):
             if operation_name == "FP8 MatMul":
-                # FP8 path: cast to FP8 then multiply
+                # FP8 path: cast to FP8 then use DeepGEMM
                 x_fp8, x_scales = per_token_cast_to_fp8(x.view(-1, in_features))
                 weight_fp8, weight_scales = per_block_cast_to_fp8(weight)
-                # Use torch.matmul for FP8 (this will be slower than optimized kernels)
-                _ = torch.matmul(x_fp8.float(), weight_fp8.float())
+                # Use DeepGEMM for FP8 matrix multiplication
+                x_fp8_aligned = (x_fp8, deep_gemm.get_mn_major_tma_aligned_tensor(x_scales))
+                weight_fp8_aligned = (weight_fp8, deep_gemm.get_mn_major_tma_aligned_tensor(weight_scales))
+                out = torch.zeros((x.shape[0], out_features), device=x.device, dtype=x.dtype)
+                deep_gemm.fp8_gemm_nt(x_fp8_aligned, weight_fp8_aligned, out)
             else:
                 # BF16 path: direct multiplication
                 _ = torch.matmul(x.view(-1, in_features), weight)
@@ -61,11 +65,14 @@ def benchmark_matmul_tflops(x, weight, num_runs=100, warmup_runs=10, operation_n
     with torch.no_grad():
         for _ in range(num_runs):
             if operation_name == "FP8 MatMul":
-                # FP8 path: cast to FP8 then multiply
+                # FP8 path: cast to FP8 then use DeepGEMM
                 x_fp8, x_scales = per_token_cast_to_fp8(x.view(-1, in_features))
                 weight_fp8, weight_scales = per_block_cast_to_fp8(weight)
-                # Use torch.matmul for FP8 (this will be slower than optimized kernels)
-                _ = torch.matmul(x_fp8.float(), weight_fp8.float())
+                # Use DeepGEMM for FP8 matrix multiplication
+                x_fp8_aligned = (x_fp8, deep_gemm.get_mn_major_tma_aligned_tensor(x_scales))
+                weight_fp8_aligned = (weight_fp8, deep_gemm.get_mn_major_tma_aligned_tensor(weight_scales))
+                out = torch.zeros((x.shape[0], out_features), device=x.device, dtype=x.dtype)
+                deep_gemm.fp8_gemm_nt(x_fp8_aligned, weight_fp8_aligned, out)
             else:
                 # BF16 path: direct multiplication
                 _ = torch.matmul(x.view(-1, in_features), weight)
