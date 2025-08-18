@@ -61,12 +61,12 @@ class FP8Linear(torch.autograd.Function):
 
         x = x.view(-1, shape[-1])
 
-        # x_fp8 = per_token_cast_to_fp8(x)
-        x_fp8 = per_token_cast_to_fp8_triton(x)
+        x_fp8 = per_token_cast_to_fp8(x)
+        # x_fp8 = per_token_cast_to_fp8_triton(x)
         x_fp8 = (x_fp8[0], get_mn_major_tma_aligned_tensor(x_fp8[1]))
 
-        # weight_fp8 = per_block_cast_to_fp8(weight)
-        weight_fp8 = per_block_cast_to_fp8_triton(weight)
+        weight_fp8 = per_block_cast_to_fp8(weight)
+        # weight_fp8 = per_block_cast_to_fp8_triton(weight)
         ctx.save_for_backward(x, weight)
         out_dim = weight.shape[0]
         # flattened
