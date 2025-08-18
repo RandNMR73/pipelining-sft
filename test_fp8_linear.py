@@ -303,11 +303,11 @@ def benchmark_fp8_vs_regular_tflops():
         
         results = []
         
-        for config in configs:
-            print(f"\n--- {config['name']} Configuration ---")
-            print(f"Batch: {config['batch_size']}, Seq: {config['seq_len']}, "
-                  f"In: {config['in_features']}, Out: {config['out_features']}")
-            
+        # Print header
+        print("\nmatmul-performance:")
+        print(f"{'':>8}{'N':>12}{'K':>12}{'Torch-BF16':>12}{'Deepseek-fp8':>12}")
+        
+        for i, config in enumerate(configs):
             # Create layers
             fp8_layer = FP8Linear(
                 in_features=config['in_features'],
@@ -340,11 +340,9 @@ def benchmark_fp8_vs_regular_tflops():
             regular_input = fp8_input  # Use same bfloat16 input for fair comparison
             
             # Benchmark FP8 layer
-            print("Benchmarking FP8 layer...")
             fp8_results = benchmark_tflops(fp8_layer, fp8_input, num_runs=50, warmup_runs=5)
             
             # Benchmark regular layer
-            print("Benchmarking regular layer...")
             regular_results = benchmark_tflops(regular_layer, regular_input, num_runs=50, warmup_runs=5)
             
             # Calculate speed-up as FP8 throughput divided by regular BF16 throughput
@@ -359,37 +357,8 @@ def benchmark_fp8_vs_regular_tflops():
             }
             results.append(config_result)
             
-            # Print results for this configuration
-            print(f"FP8 Layer:")
-            print(f"  Time per run: {fp8_results['avg_time_per_run_ms']:.2f} ms")
-            print(f"  TFLOPs/s: {fp8_results['tflops_per_second']:.2f}")
-            print(f"  Theoretical TFLOPs: {fp8_results['theoretical_tflops']:.4f}")
-            
-            print(f"Regular Layer:")
-            print(f"  Time per run: {regular_results['avg_time_per_run_ms']:.2f} ms")
-            print(f"  TFLOPs/s: {regular_results['tflops_per_second']:.2f}")
-            print(f"  Theoretical TFLOPs: {regular_results['theoretical_tflops']:.4f}")
-            
-            print(f"Performance:")
-            print(f"  Speedup (FP8 / Regular): {speedup:.2f}x ({'FP8 faster' if speedup > 1 else 'Regular faster'})")
-        
-        # Print summary
-        print("\n" + "="*60)
-        print("TFLOPs Benchmark Summary")
-        print("="*60)
-        
-        avg_speedup = np.mean([r['speedup'] for r in results])
-        print(f"Average speedup: {avg_speedup:.2f}x")
-        
-        if avg_speedup > 1:
-            print("🎯 FP8 layers are faster on average!")
-        else:
-            print("⚠️  Regular layers are faster on average")
-        
-        print("\nDetailed Results:")
-        for i, result in enumerate(results):
-            config = result['config']
-            print(f"{i+1}. {config['name']}: {result['speedup']:.2f}x speedup")
+            # Print results in the specified format
+            print(f"{i:>8}{config['in_features']:>12.1f}{config['out_features']:>12.1f}{regular_results['tflops_per_second']:>12.6f}{fp8_results['tflops_per_second']:>12.6f}")
         
         return True
         
