@@ -13,7 +13,8 @@ import numpy as np
 # Add the models directory to the path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from models.deepseek_v3.fp8_layers import Linear as FP8Linear, functional_fp8_linear
+# from models.deepseek_v3.fp8_layers import Linear as FP8Linear, functional_fp8_linear
+from models.deepseek_v3.fp8_layers_triton import FP8Linear
 
 def benchmark_tflops(layer, input_tensor, num_runs=100, warmup_runs=10):
     """
@@ -309,11 +310,16 @@ def benchmark_fp8_vs_regular_tflops():
         
         for i, config in enumerate(configs):
             # Create layers
-            fp8_layer = torch.compile(FP8Linear(
+            # fp8_layer = torch.compile(FP8Linear(
+            #     in_features=config['in_features'],
+            #     out_features=config['out_features'],
+            #     bias=False
+            # ).to(device))
+            fp8_layer = FP8Linear(
                 in_features=config['in_features'],
                 out_features=config['out_features'],
                 bias=False
-            ).to(device))
+            ).to(device)
             
             regular_layer = nn.Linear(
                 in_features=config['in_features'],
