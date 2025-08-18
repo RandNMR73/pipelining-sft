@@ -45,12 +45,16 @@ def benchmark_matmul_tflops(x, weight, num_runs=100, warmup_runs=10, operation_n
         for _ in range(warmup_runs):
             if operation_name == "FP8 MatMul":
                 # FP8 path: cast to FP8 then use DeepGEMM
-                x_fp8, x_scales = per_token_cast_to_fp8(x.view(-1, in_features))
+                x_reshaped = x.view(-1, in_features)  # (batch_size * seq_len, in_features)
+                x_fp8, x_scales = per_token_cast_to_fp8(x_reshaped)
                 weight_fp8, weight_scales = per_block_cast_to_fp8(weight)
-                # Use DeepGEMM for FP8 matrix multiplication
+                
+                # Prepare tensors for DeepGEMM - match original implementation exactly
                 x_fp8_aligned = (x_fp8, deep_gemm.get_mn_major_tma_aligned_tensor(x_scales))
-                weight_fp8_aligned = (weight_fp8, deep_gemm.get_mn_major_tma_aligned_tensor(weight_scales))
-                out = torch.zeros((x.shape[0], out_features), device=x.device, dtype=x.dtype)
+                weight_fp8_aligned = weight_fp8  # Don't wrap weight scales in get_mn_major_tma_aligned_tensor
+                
+                # Create output tensor with correct dimensions
+                out = torch.zeros((x_reshaped.shape[0], out_features), device=x.device, dtype=x.dtype)
                 deep_gemm.fp8_gemm_nt(x_fp8_aligned, weight_fp8_aligned, out)
             else:
                 # BF16 path: direct multiplication
@@ -66,12 +70,16 @@ def benchmark_matmul_tflops(x, weight, num_runs=100, warmup_runs=10, operation_n
         for _ in range(num_runs):
             if operation_name == "FP8 MatMul":
                 # FP8 path: cast to FP8 then use DeepGEMM
-                x_fp8, x_scales = per_token_cast_to_fp8(x.view(-1, in_features))
+                x_reshaped = x.view(-1, in_features)  # (batch_size * seq_len, in_features)
+                x_fp8, x_scales = per_token_cast_to_fp8(x_reshaped)
                 weight_fp8, weight_scales = per_block_cast_to_fp8(weight)
-                # Use DeepGEMM for FP8 matrix multiplication
+                
+                # Prepare tensors for DeepGEMM - match original implementation exactly
                 x_fp8_aligned = (x_fp8, deep_gemm.get_mn_major_tma_aligned_tensor(x_scales))
-                weight_fp8_aligned = (weight_fp8, deep_gemm.get_mn_major_tma_aligned_tensor(weight_scales))
-                out = torch.zeros((x.shape[0], out_features), device=x.device, dtype=x.dtype)
+                weight_fp8_aligned = weight_fp8  # Don't wrap weight scales in get_mn_major_tma_aligned_tensor
+                
+                # Create output tensor with correct dimensions
+                out = torch.zeros((x_reshaped.shape[0], out_features), device=x.device, dtype=x.dtype)
                 deep_gemm.fp8_gemm_nt(x_fp8_aligned, weight_fp8_aligned, out)
             else:
                 # BF16 path: direct multiplication
