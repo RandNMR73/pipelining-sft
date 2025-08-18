@@ -305,7 +305,7 @@ def benchmark_fp8_vs_regular_tflops():
         
         # Print header
         print("\nmatmul-performance:")
-        print(f"{'':>8}{'N':>12}{'K':>12}{'Torch-BF16':>12}{'Deepseek-fp8':>12}")
+        print(f"{'':>8}{'N':>12}{'K':>12}{'Torch-BF16      ':>12}{'Deepseek-fp8':>12}")
         
         for i, config in enumerate(configs):
             # Create layers
