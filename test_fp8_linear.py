@@ -34,7 +34,7 @@ def benchmark_tflops(layer, input_tensor, num_runs=100, warmup_runs=10):
     
     # Calculate theoretical TFLOPs for one forward pass
     # For matrix multiplication: 2 * batch_size * seq_len * in_features * out_features
-    theoretical_flops = 2 * batch_size * in_features * out_features
+    theoretical_flops = 2 * batch_size * seq_len * in_features * out_features
     theoretical_tflops = theoretical_flops / 1e12
     
     # Warmup runs
@@ -295,10 +295,10 @@ def benchmark_fp8_vs_regular_tflops():
         
         # Test configurations matching the benchmark data
         configs = [
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 4096, 'out_features': 4096, 'name': '4K×4K'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 8192, 'out_features': 8192, 'name': '8K×8K'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 12288, 'out_features': 12288, 'name': '12K×12K'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 16384, 'out_features': 16384, 'name': '16K×16K'},
+            {'batch_size': 4096, 'seq_len': 4096, 'in_features': 4096, 'out_features': 4096, 'name': '4K×4K'},
+            {'batch_size': 8192, 'seq_len': 8192, 'in_features': 8192, 'out_features': 8192, 'name': '8K×8K'},
+            {'batch_size': 12288, 'seq_len': 12288, 'in_features': 12288, 'out_features': 12288, 'name': '12K×12K'},
+            {'batch_size': 16384, 'seq_len': 16384, 'in_features': 16384, 'out_features': 16384, 'name': '16K×16K'},
         ]
         
         results = []
