@@ -319,7 +319,7 @@ def benchmark_fp8_vs_regular_tflops():
                 in_features=config['in_features'],
                 out_features=config['out_features'],
                 bias=False,
-                dtype=torch.float32
+                dtype=torch.bfloat16
             ).to(device)
             
             # Copy weights for fair comparison
@@ -337,7 +337,7 @@ def benchmark_fp8_vs_regular_tflops():
                 device=device
             )
             
-            regular_input = fp8_input.float()
+            regular_input = fp8_input  # Use same bfloat16 input for fair comparison
             
             # Benchmark FP8 layer
             print("Benchmarking FP8 layer...")
