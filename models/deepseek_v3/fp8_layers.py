@@ -52,6 +52,7 @@ def functional_fp8_linear(x: torch.Tensor, weight, bias=None) -> torch.Tensor:
 class FP8Linear(torch.autograd.Function):
 
     @staticmethod
+    @torch.compile
     def forward(ctx, x, weight, bias=None):
         # Need contiguous tensors for collectives.
         assert x.dtype == torch.bfloat16, f"only allow bf16 inputs to fp8 linear"
