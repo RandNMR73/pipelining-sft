@@ -34,7 +34,7 @@ def benchmark_tflops(layer, input_tensor, num_runs=100, warmup_runs=10):
     
     # Calculate theoretical TFLOPs for one forward pass
     # For matrix multiplication: 2 * batch_size * seq_len * in_features * out_features
-    theoretical_flops = 2 * batch_size * seq_len * in_features * out_features
+    theoretical_flops = 2 * batch_size * in_features * out_features
     theoretical_tflops = theoretical_flops / 1e12
     
     # Warmup runs
@@ -347,8 +347,8 @@ def benchmark_fp8_vs_regular_tflops():
             print("Benchmarking regular layer...")
             regular_results = benchmark_tflops(regular_layer, regular_input, num_runs=50, warmup_runs=5)
             
-            # Calculate speedup
-            speedup = regular_results['tflops_per_second'] / fp8_results['tflops_per_second']
+            # Calculate speed-up as FP8 throughput divided by regular BF16 throughput
+            speedup = fp8_results['tflops_per_second'] / regular_results['tflops_per_second']
             
             # Store results
             config_result = {
@@ -371,7 +371,7 @@ def benchmark_fp8_vs_regular_tflops():
             print(f"  Theoretical TFLOPs: {regular_results['theoretical_tflops']:.4f}")
             
             print(f"Performance:")
-            print(f"  Speedup: {speedup:.2f}x ({'FP8 faster' if speedup < 1 else 'Regular faster'})")
+            print(f"  Speedup (FP8 / Regular): {speedup:.2f}x ({'FP8 faster' if speedup > 1 else 'Regular faster'})")
         
         # Print summary
         print("\n" + "="*60)
@@ -381,7 +381,7 @@ def benchmark_fp8_vs_regular_tflops():
         avg_speedup = np.mean([r['speedup'] for r in results])
         print(f"Average speedup: {avg_speedup:.2f}x")
         
-        if avg_speedup < 1:
+        if avg_speedup > 1:
             print("🎯 FP8 layers are faster on average!")
         else:
             print("⚠️  Regular layers are faster on average")
