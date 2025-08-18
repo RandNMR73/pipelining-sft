@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import triton
 import triton.language as tl
-from deep_gemm import ceil_div, get_mn_major_tma_aligned_tensor
+from deep_gemm import calc_diff, ceil_div, get_mn_major_tma_aligned_tensor
 
 
 @triton.jit

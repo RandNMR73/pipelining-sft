@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from typing import Optional, Tuple
 import deep_gemm
 from deep_gemm import ceil_div, get_mn_major_tma_aligned_tensor
+from models.deepseek_v3.fp8_layers_triton import per_token_cast_to_fp8_triton, per_block_cast_to_fp8_triton
 
 block_size = 128
 
@@ -60,10 +61,12 @@ class FP8Linear(torch.autograd.Function):
 
         x = x.view(-1, shape[-1])
 
-        x_fp8 = per_token_cast_to_fp8(x)
+        # x_fp8 = per_token_cast_to_fp8(x)
+        x_fp8 = per_token_cast_to_fp8_triton(x)
         x_fp8 = (x_fp8[0], get_mn_major_tma_aligned_tensor(x_fp8[1]))
 
-        weight_fp8 = per_block_cast_to_fp8(weight)
+        # weight_fp8 = per_block_cast_to_fp8(weight)
+        weight_fp8 = per_block_cast_to_fp8_triton(weight)
         ctx.save_for_backward(x, weight)
         out_dim = weight.shape[0]
         # flattened
