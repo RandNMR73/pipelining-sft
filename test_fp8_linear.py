@@ -295,10 +295,12 @@ def benchmark_fp8_vs_regular_tflops():
         
         # Test configurations matching the benchmark data
         configs = [
-            {'batch_size': 1, 'seq_len': 4096, 'in_features': 1536, 'out_features': 24576, 'name': '4K×4K'},
-            {'batch_size': 1, 'seq_len': 4096, 'in_features': 512, 'out_features': 32768, 'name': '8K×8K'},
-            {'batch_size': 1, 'seq_len': 4096, 'in_features': 16384, 'out_features': 7168, 'name': '12K×12K'},
-            {'batch_size': 1, 'seq_len': 4096, 'in_features': 2048, 'out_features': 7168, 'name': '16K×16K'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 256, 'out_features': 1536, 'name': '256×1536'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 1536, 'name': '1536×1536'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 9216, 'name': '1536×9216'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 512, 'out_features': 1536, 'name': '512×1536'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 32760, 'out_features': 1536, 'name': '32760×1536'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 32760, 'out_features': 8960, 'name': '32760×8960'},
         ]
         
         results = []
