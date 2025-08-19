@@ -295,10 +295,10 @@ def benchmark_fp8_vs_regular_tflops():
         
         # Test configurations matching the benchmark data
         configs = [
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 256, 'out_features': 1536, 'name': '256×1536'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 1536, 'name': '1536×1536'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 9216, 'name': '1536×9216'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 512, 'out_features': 1536, 'name': '512×1536'},
+            # {'batch_size': 1, 'seq_len': 1, 'in_features': 256, 'out_features': 1536, 'name': '256×1536'},
+            # {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 1536, 'name': '1536×1536'},
+            # {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 9216, 'name': '1536×9216'},
+            # {'batch_size': 1, 'seq_len': 1, 'in_features': 512, 'out_features': 1536, 'name': '512×1536'},
             {'batch_size': 1, 'seq_len': 1, 'in_features': 32760, 'out_features': 1536, 'name': '32760×1536'},
             {'batch_size': 1, 'seq_len': 1, 'in_features': 32760, 'out_features': 8960, 'name': '32760×8960'},
         ]
@@ -311,17 +311,17 @@ def benchmark_fp8_vs_regular_tflops():
         
         for i, config in enumerate(configs):
             # Create layers
-            fp8_layer = FP8Linear(
+            fp8_layer = torch.compile(FP8Linear(
                 in_features=config['in_features'],
                 out_features=config['out_features'],
                 bias=False
-            ).to(device)
+            ).to(device))
 
-            # fp8_layer = torch.compile(FP8Linear(
+            # fp8_layer = FP8Linear(
             #     in_features=config['in_features'],
             #     out_features=config['out_features'],
             #     bias=False
-            # ).to(device))
+            # ).to(device)
             
             regular_layer = nn.Linear(
                 in_features=config['in_features'],
