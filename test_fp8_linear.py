@@ -295,12 +295,14 @@ def benchmark_fp8_vs_regular_tflops():
         
         # Test configurations matching the benchmark data
         configs = [
-            # {'batch_size': 1, 'seq_len': 1, 'in_features': 256, 'out_features': 1536, 'name': '256×1536'},
-            # {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 1536, 'name': '1536×1536'},
-            # {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 9216, 'name': '1536×9216'},
-            # {'batch_size': 1, 'seq_len': 1, 'in_features': 512, 'out_features': 1536, 'name': '512×1536'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 32760, 'out_features': 1536, 'name': '32760×1536'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 32760, 'out_features': 8960, 'name': '32760×8960'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 256, 'out_features': 1536, 'name': 'fc_in_256x1536'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 1536, 'name': 'fc_out_1536x1536'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 9216, 'name': 'fc_1536x9216'},
+            {'batch_size': 1, 'seq_len': 512, 'in_features': 4096, 'out_features': 1536, 'name': 'fc_in_512x4096x1536'},
+            {'batch_size': 1, 'seq_len': 512, 'in_features': 1536, 'out_features': 1536, 'name': 'fc_out_512x1536x1536'},
+            {'batch_size': 1, 'seq_len': 32760, 'in_features': 1536, 'out_features': 1536, 'name': 'to_q_32760x1536x1536'},
+            {'batch_size': 1, 'seq_len': 32760, 'in_features': 1536, 'out_features': 8960, 'name': 'ffn_fc_in_32760x1536x8960'},
+            {'batch_size': 1, 'seq_len': 32760, 'in_features': 8960, 'out_features': 1536, 'name': 'ffn_fc_out_32760x8960x1536'},
         ]
         
         results = []
