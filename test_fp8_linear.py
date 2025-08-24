@@ -300,9 +300,9 @@ def benchmark_fp8_vs_regular_tflops():
             {'batch_size': 1, 'seq_len': 1, 'in_features': 5120, 'out_features': 30720, 'name': 'fc_5120x30720'},
             {'batch_size': 1, 'seq_len': 512, 'in_features': 4096, 'out_features': 5120, 'name': 'fc_in_512x4096x5120'},
             {'batch_size': 1, 'seq_len': 512, 'in_features': 5120, 'out_features': 5120, 'name': 'fc_out_512x5120x5120'},
-            {'batch_size': 1, 'seq_len': 75600, 'in_features': 5120, 'out_features': 5120, 'name': 'to_q_75600x5120x5120'},
-            {'batch_size': 1, 'seq_len': 75600, 'in_features': 5120, 'out_features': 13824, 'name': 'ffn_fc_in_75600x5120x13824'},
-            {'batch_size': 1, 'seq_len': 75600, 'in_features': 13824, 'out_features': 5120, 'name': 'ffn_fc_out_75600x13824x5120'},
+            {'batch_size': 1, 'seq_len': 32768, 'in_features': 5120, 'out_features': 5120, 'name': 'to_q_75600x5120x5120'},
+            {'batch_size': 1, 'seq_len': 32768, 'in_features': 5120, 'out_features': 13824, 'name': 'ffn_fc_in_75600x5120x13824'},
+            {'batch_size': 1, 'seq_len': 32768, 'in_features': 13824, 'out_features': 5120, 'name': 'ffn_fc_out_75600x13824x5120'},
         ]
 
         results = []
