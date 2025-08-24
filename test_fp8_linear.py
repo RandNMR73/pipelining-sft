@@ -295,16 +295,16 @@ def benchmark_fp8_vs_regular_tflops():
         
         # Test configurations matching the benchmark data
         configs = [
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 256, 'out_features': 1536, 'name': 'fc_in_256x1536'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 1536, 'name': 'fc_out_1536x1536'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 1536, 'out_features': 9216, 'name': 'fc_1536x9216'},
-            {'batch_size': 1, 'seq_len': 512, 'in_features': 4096, 'out_features': 1536, 'name': 'fc_in_512x4096x1536'},
-            {'batch_size': 1, 'seq_len': 512, 'in_features': 1536, 'out_features': 1536, 'name': 'fc_out_512x1536x1536'},
-            {'batch_size': 1, 'seq_len': 32760, 'in_features': 1536, 'out_features': 1536, 'name': 'to_q_32760x1536x1536'},
-            {'batch_size': 1, 'seq_len': 32760, 'in_features': 1536, 'out_features': 8960, 'name': 'ffn_fc_in_32760x1536x8960'},
-            {'batch_size': 1, 'seq_len': 32760, 'in_features': 8960, 'out_features': 1536, 'name': 'ffn_fc_out_32760x8960x1536'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 256, 'out_features': 5120, 'name': 'fc_in_256x5120'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 5120, 'out_features': 5120, 'name': 'fc_out_5120x5120'},
+            {'batch_size': 1, 'seq_len': 1, 'in_features': 5120, 'out_features': 30720, 'name': 'fc_5120x30720'},
+            {'batch_size': 1, 'seq_len': 512, 'in_features': 4096, 'out_features': 5120, 'name': 'fc_in_512x4096x5120'},
+            {'batch_size': 1, 'seq_len': 512, 'in_features': 5120, 'out_features': 5120, 'name': 'fc_out_512x5120x5120'},
+            {'batch_size': 1, 'seq_len': 75600, 'in_features': 5120, 'out_features': 5120, 'name': 'to_q_75600x5120x5120'},
+            {'batch_size': 1, 'seq_len': 75600, 'in_features': 5120, 'out_features': 13824, 'name': 'ffn_fc_in_75600x5120x13824'},
+            {'batch_size': 1, 'seq_len': 75600, 'in_features': 13824, 'out_features': 5120, 'name': 'ffn_fc_out_75600x13824x5120'},
         ]
-        
+
         results = []
         
         # Print header
