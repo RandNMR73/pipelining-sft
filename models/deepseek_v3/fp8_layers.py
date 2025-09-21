@@ -62,7 +62,7 @@ class FP8Linear(torch.autograd.Function):
 
         x = x.view(-1, shape[-1])
 
-        x_fp8 = per_token_cast_to_fp8(x)
+        x_fp8 = per_token_cast_to_fp8(x, use_ue8m0=False)
         # x_fp8 = per_token_cast_to_fp8_triton(x)
         x_fp8 = (x_fp8[0], get_mn_major_tma_aligned_tensor(x_fp8[1]))
 
@@ -91,7 +91,7 @@ class FP8Linear(torch.autograd.Function):
             # 1. d_weight
             # the scaling has to be done on the channel dim so we cast to fp8 with l, c
             # then transpose them, seems to be more proper, but i will use the common method since people are doing it
-            dy_fp8 = per_token_cast_to_fp8(grad_output.t().contiguous())  # c, l
+            dy_fp8 = per_token_cast_to_fp8(grad_output.t().contiguous(), use_ue8m0=False)  # c, l
             x_fp8 = per_token_cast_to_fp8(x.t().contiguous())
 
             dy_fp8 = (dy_fp8[0], get_mn_major_tma_aligned_tensor(dy_fp8[1]))
