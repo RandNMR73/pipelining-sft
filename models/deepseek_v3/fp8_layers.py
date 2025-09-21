@@ -62,20 +62,20 @@ class FP8Linear(torch.autograd.Function):
 
         x = x.view(-1, shape[-1])
 
-        x_fp8 = per_token_cast_to_fp8(x, use_ue8m0=False)
+        x_fp8 = per_token_cast_to_fp8(x, use_ue8m0=True)
         # x_fp8 = per_token_cast_to_fp8_triton(x)
         x_fp8 = (x_fp8[0], get_mn_major_tma_aligned_tensor(x_fp8[1]))
 
-        weight_fp8 = per_block_cast_to_fp8(weight, use_ue8m0=False)
+        weight_fp8 = per_block_cast_to_fp8(weight, use_ue8m0=True)
         # weight_fp8 = per_block_cast_to_fp8_triton(weight)
         ctx.save_for_backward(x, weight)
         out_dim = weight.shape[0]
         # flattened
         out = torch.zeros((x.shape[0], out_dim), device=x.device, dtype=x.dtype)
-        deep_gemm.fp8_gemm_nt(x_fp8, weight_fp8, out, disable_ue8m0_cast=True)
+        deep_gemm.fp8_gemm_nt(x_fp8, weight_fp8, out, disable_ue8m0_cast=False)
         if len(shape) == 3:
             out = out.view(shape[0], shape[1], out_dim)
-        return out
+        return out  
 
     @staticmethod
     def backward(ctx, grad_output):
