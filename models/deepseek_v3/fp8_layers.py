@@ -72,7 +72,7 @@ class FP8Linear(torch.autograd.Function):
         out_dim = weight.shape[0]
         # flattened
         out = torch.zeros((x.shape[0], out_dim), device=x.device, dtype=x.dtype)
-        deep_gemm.fp8_gemm_nt(x_fp8, weight_fp8, out, disable_ue8m0_cast=False)
+        deep_gemm.fp8_gemm_nt(x_fp8, weight_fp8, out, disable_ue8m0_cast=True)
         if len(shape) == 3:
             out = out.view(shape[0], shape[1], out_dim)
         return out
