@@ -8,9 +8,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional, Tuple
 from flashinfer import nvfp4_quantize, mm_fp4, SfLayout
-import deep_gemm
-from deep_gemm import ceil_div, get_mn_major_tma_aligned_tensor
-from deep_gemm.utils.math import per_token_cast_to_fp8, per_block_cast_to_fp8
 from models.deepseek_v3.fp8_layers_triton import per_token_cast_to_fp8_triton, per_block_cast_to_fp8_triton
 
 def functional_fp4_linear(x: torch.Tensor, weight, bias=None) -> torch.Tensor:
@@ -58,45 +55,6 @@ class FP4Linear(torch.autograd.Function):
     def backward(ctx, grad_output):
 
         grad_input = grad_weight = grad_bias = None
-
-        shape = grad_output.shape
-        grad_output = grad_output.view(-1, shape[-1])
-
-        x, weight = ctx.saved_tensors
-
-        if ctx.needs_input_grad[1]:
-            # 1. d_weight
-            # the scaling has to be done on the channel dim so we cast to fp8 with l, c
-            # then transpose them, seems to be more proper, but i will use the common method since people are doing it
-            dy_fp8 = per_token_cast_to_fp8(grad_output.t().contiguous(), use_ue8m0=False)  # c, l
-            x_fp8 = per_token_cast_to_fp8(x.t().contiguous())
-
-            dy_fp8 = (dy_fp8[0], get_mn_major_tma_aligned_tensor(dy_fp8[1]))
-            x_fp8 = (x_fp8[0], get_mn_major_tma_aligned_tensor(x_fp8[1]))
-
-            grad_weight = torch.zeros_like(weight, dtype=torch.float32)
-
-            deep_gemm.wgrad_gemm_fp8_fp8_fp32_nt(dy_fp8, x_fp8, grad_weight)
-
-            # grad_weight = None
-
-        # 2. d_input
-        if ctx.needs_input_grad[0]:
-            dy_fp8 = per_token_cast_to_fp8(grad_output.contiguous())
-            dy_fp8 = (dy_fp8[0], get_mn_major_tma_aligned_tensor(dy_fp8[1]))
-            weight_fp8 = per_block_cast_to_fp8(weight.t().contiguous(), use_ue8m0=False)
-            # weight_fp8 = (weight, weight.scale)
-            # weight_fp8 = (weight_fp8[0].t().contiguous(), weight_fp8[1].t().contiguous())
-
-            # ref_grad_input = grad_output.float() @ weight_dequant(weight, weight.scale).float()
-
-            grad_input = torch.zeros_like(x)
-            deep_gemm.fp8_gemm_nt(dy_fp8, weight_fp8, grad_input)
-
-            if len(shape) == 3:
-                in_dim = weight.shape[1]
-                grad_input = grad_input.view(shape[0], shape[1], in_dim)
-
         return grad_input, grad_weight, grad_bias
 
 
