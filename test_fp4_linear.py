@@ -305,7 +305,7 @@ def benchmark_fp4_vs_regular_tflops():
         
         # Print header
         print("\nmatmul-performance:")
-        print(f"{'':>8}{'N':>12}{'K':>12}{'Torch-BF16':>14}{'Deepseek-fp4':>12}")
+        print(f"{'':>8}{'N':>12}{'K':>12}{'Torch-BF16':>14}{'Flashinfer-fp4':>12}")
         
         for i, config in enumerate(configs):
             # Create layers
