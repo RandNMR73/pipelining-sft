@@ -41,7 +41,7 @@ class FP4Linear(torch.autograd.Function):
         x_fp4, x_scale = nvfp4_quantize(x, x_global_sf, sfLayout=SfLayout.layout_128x4, do_shuffle=False)
         weight_global_sf = (448 * 6) / weight.float().abs().nan_to_num().max();
         fp4_w, fp4_s = nvfp4_quantize(weight.to(torch.bfloat16), weight_global_sf, sfLayout=SfLayout.layout_128x4, do_shuffle=False)
-        out = mm_fp4(x_fp4, fp4_w.T, x_scale, fp4_s.T, 1.0/(x_global_sf * weight_global_sf), torch.bfloat16, None, backend='cutlass')
+        out = mm_fp4(x_fp4, fp4_w.T, x_scale, fp4_s.T, 1.0/(x_global_sf * weight_global_sf), torch.bfloat16, None, backend='cudnn')
 
         ctx.save_for_backward(x, weight)
         out_dim = weight.shape[0]
