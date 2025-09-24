@@ -8,7 +8,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional, Tuple
 from flashinfer import nvfp4_quantize, mm_fp4, SfLayout
-from models.deepseek_v3.fp8_layers_triton import per_token_cast_to_fp8_triton, per_block_cast_to_fp8_triton
 
 def functional_fp4_linear(x: torch.Tensor, weight, bias=None) -> torch.Tensor:
     """
