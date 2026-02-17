@@ -289,16 +289,35 @@ def benchmark_fp4_vs_regular_tflops():
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print(f"✓ Using device: {device}")
         
-        # Test configurations matching the benchmark data
+        # Test configurations matching the logged FP4 layer shapes
         configs = [
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 256, 'out_features': 5120, 'name': 'fc_in_256x5120'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 5120, 'out_features': 5120, 'name': 'fc_out_5120x5120'},
-            {'batch_size': 1, 'seq_len': 1, 'in_features': 5120, 'out_features': 30720, 'name': 'fc_5120x30720'},
-            {'batch_size': 1, 'seq_len': 512, 'in_features': 4096, 'out_features': 5120, 'name': 'fc_in_512x4096x5120'},
-            {'batch_size': 1, 'seq_len': 512, 'in_features': 5120, 'out_features': 5120, 'name': 'fc_out_512x5120x5120'},
-            {'batch_size': 1, 'seq_len': 32768, 'in_features': 5120, 'out_features': 5120, 'name': 'to_q_75600x5120x5120'},
-            {'batch_size': 1, 'seq_len': 32768, 'in_features': 5120, 'out_features': 13824, 'name': 'ffn_fc_in_75600x5120x13824'},
-            {'batch_size': 1, 'seq_len': 32768, 'in_features': 13824, 'out_features': 5120, 'name': 'ffn_fc_out_75600x13824x5120'},
+            # ltx2.blocks.0.attn1.to_out
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 4096,
+             'name': 'ltx2_blocks0_attn1_to_out'},
+
+            # ltx2.blocks.0.audio_attn1.to_out
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048,
+             'name': 'ltx2_blocks0_audio_attn1_to_out'},
+
+            # ltx2.blocks.0.audio_to_video_attn.to_out
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 2048, 'out_features': 4096,
+             'name': 'ltx2_blocks0_audio_to_video_attn_to_out'},
+
+            # ltx2.blocks.0.ffn.fc_in
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 16384,
+             'name': 'ltx2_blocks0_ffn_fc_in'},
+
+            # ltx2.blocks.0.ffn.fc_out
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 16384, 'out_features': 4096,
+             'name': 'ltx2_blocks0_ffn_fc_out'},
+
+            # ltx2.blocks.0.audio.ffn.fc_in
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 8192,
+             'name': 'ltx2_blocks0_audio_ffn_fc_in'},
+
+            # ltx2.blocks.0.audio.ffn.fc_out
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 8192, 'out_features': 2048,
+             'name': 'ltx2_blocks0_audio_ffn_fc_out'},
         ]
 
         results = []
