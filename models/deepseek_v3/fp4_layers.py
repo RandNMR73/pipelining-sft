@@ -9,6 +9,8 @@ import torch.nn.functional as F
 from typing import Optional, Tuple
 from flashinfer import nvfp4_quantize, mm_fp4, SfLayout
 
+x_global_sf = torch.tensor(1.0, device="cuda", dtype=torch.float32)
+
 def functional_fp4_linear(x: torch.Tensor, weight, bias=None) -> torch.Tensor:
     """
     Args:
@@ -37,7 +39,8 @@ class FP4Linear(torch.autograd.Function):
 
         x = x.view(-1, shape[-1])
         
-        x_global_sf = (448 * 6) / x.float().abs().nan_to_num().max();
+        # x_global_sf = (448 * 6) / x.float().abs().nan_to_num().max();
+        
         x_fp4, x_scale = nvfp4_quantize(x, x_global_sf, sfLayout=SfLayout.layout_128x4, do_shuffle=False)
         weight_global_sf = (448 * 6) / weight.float().abs().nan_to_num().max();
         fp4_w, fp4_s = nvfp4_quantize(weight.to(torch.bfloat16), weight_global_sf, sfLayout=SfLayout.layout_128x4, do_shuffle=False)

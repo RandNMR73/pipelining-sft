@@ -291,40 +291,46 @@ def benchmark_fp4_vs_regular_tflops():
         
         # Test configurations matching the logged FP4 layer shapes
         configs = [
-            # ltx2.blocks.0.attn1.to_out
-            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 4096,
-             'name': 'ltx2_blocks0_attn1_to_out'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 4096, 'name': 'ltx2.blocks.32.attn1.to_q'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 4096, 'name': 'ltx2.blocks.32.attn1.to_k'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 4096, 'name': 'ltx2.blocks.32.attn1.to_v'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 4096, 'name': 'ltx2.blocks.32.attn1.to_out'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 4096, 'name': 'ltx2.blocks.32.attn2.to_q'},
+            {'batch_size': 1, 'seq_len': 1024, 'in_features': 4096, 'out_features': 4096, 'name': 'ltx2.blocks.32.attn2.to_k'},
+            {'batch_size': 1, 'seq_len': 1024, 'in_features': 4096, 'out_features': 4096, 'name': 'ltx2.blocks.32.attn2.to_v'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 4096, 'name': 'ltx2.blocks.32.attn2.to_out'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio_attn1.to_q'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio_attn1.to_k'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio_attn1.to_v'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio_attn1.to_out'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio_attn2.to_q'},
+            {'batch_size': 1, 'seq_len': 1024, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio_attn2.to_k'},
+            {'batch_size': 1, 'seq_len': 1024, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio_attn2.to_v'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio_attn2.to_out'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio_to_video_attn.to_q'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio_to_video_attn.to_k'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio_to_video_attn.to_v'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 2048, 'out_features': 4096, 'name': 'ltx2.blocks.32.audio_to_video_attn.to_out'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.video_to_audio_attn.to_q'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 2048, 'name': 'ltx2.blocks.32.video_to_audio_attn.to_k'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 2048, 'name': 'ltx2.blocks.32.video_to_audio_attn.to_v'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048, 'name': 'ltx2.blocks.32.video_to_audio_attn.to_out'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 16384, 'name': 'ltx2.blocks.32.ffn.fc_in'},
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 16384, 'out_features': 4096, 'name': 'ltx2.blocks.32.ffn.fc_out'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 8192, 'name': 'ltx2.blocks.32.audio.ffn.fc_in'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 8192, 'out_features': 2048, 'name': 'ltx2.blocks.32.audio.ffn.fc_out'},
 
-            # ltx2.blocks.0.audio_attn1.to_out
-            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 2048,
-             'name': 'ltx2_blocks0_audio_attn1_to_out'},
-
-            # ltx2.blocks.0.audio_to_video_attn.to_out
-            {'batch_size': 1, 'seq_len': 32640, 'in_features': 2048, 'out_features': 4096,
-             'name': 'ltx2_blocks0_audio_to_video_attn_to_out'},
-
-            # ltx2.blocks.0.ffn.fc_in
-            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 16384,
-             'name': 'ltx2_blocks0_ffn_fc_in'},
-
-            # ltx2.blocks.0.ffn.fc_out
-            {'batch_size': 1, 'seq_len': 32640, 'in_features': 16384, 'out_features': 4096,
-             'name': 'ltx2_blocks0_ffn_fc_out'},
-
-            # ltx2.blocks.0.audio.ffn.fc_in
-            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 8192,
-             'name': 'ltx2_blocks0_audio_ffn_fc_in'},
-
-            # ltx2.blocks.0.audio.ffn.fc_out
-            {'batch_size': 1, 'seq_len': 126, 'in_features': 8192, 'out_features': 2048,
-             'name': 'ltx2_blocks0_audio_ffn_fc_out'},
+            # fused projs
+            {'batch_size': 1, 'seq_len': 32640, 'in_features': 4096, 'out_features': 3*4096, 'name': 'ltx2.blocks.32.attn1.fused_proj'},
+            {'batch_size': 1, 'seq_len': 126, 'in_features': 2048, 'out_features': 3*2048, 'name': 'ltx2.blocks.32.audio_attn1.fused_proj'},
         ]
 
         results = []
+        fp4_faster_layers = []
         
         # Print header
         print("\nmatmul-performance:")
-        print(f"{'':>8}{'N':>12}{'K':>12}{'Torch-BF16':>14}{'Flashinfer-fp4':>12}")
+        print(f"{'idx':>4} {'matmul':<48}{'N':>12}{'K':>12}{'Torch-BF16':>14}{'Flashinfer-fp4':>16}")
         
         for i, config in enumerate(configs):
             # Create layers
@@ -383,7 +389,21 @@ def benchmark_fp4_vs_regular_tflops():
             results.append(config_result)
             
             # Print results in the specified format
-            print(f"{i:>8}{config['in_features']:>12.1f}{config['out_features']:>12.1f}{regular_results['tflops_per_second']:>12.6f}{fp4_results['tflops_per_second']:>12.6f}")
+            print(
+                f"{i:>4} {config['name']:<48}"
+                f"{config['in_features']:>12.1f}{config['out_features']:>12.1f}"
+                f"{regular_results['tflops_per_second']:>14.6f}{fp4_results['tflops_per_second']:>16.6f}"
+            )
+
+            if fp4_results['tflops_per_second'] > regular_results['tflops_per_second']:
+                fp4_faster_layers.append(config['name'])
+
+        print("\nLayers where Flashinfer-fp4 has higher benchmarked TFLOPs:")
+        if fp4_faster_layers:
+            for layer_name in fp4_faster_layers:
+                print(f"  - {layer_name}")
+        else:
+            print("  (none)")
         
         return True
         
