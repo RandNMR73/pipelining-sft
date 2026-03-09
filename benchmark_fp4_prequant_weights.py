@@ -79,8 +79,23 @@ x_global_sf = torch.tensor(1.0, device="cuda", dtype=torch.float32)
 
 BASE_VIDEO_SEQUENCE_LENGTH = 8160
 BASE_AUDIO_SEQUENCE_LENGTH = 126
-BASE_STAGE_VIDEO_SEQUENCE_LENGTHS = [8160, 16320, 24480]
-REFINEMENT_STAGE_MULTIPLIER = 4
+SEQUENCE_LENGTH_PRESETS = [
+    {
+        "base_video_sequence_length": 8160,
+        "refinement_video_sequence_length": 32640,
+        "audio_sequence_length": 126,
+    },
+    {
+        "base_video_sequence_length": 15810,
+        "refinement_video_sequence_length": 63240,
+        "audio_sequence_length": 251,
+    },
+    {
+        "base_video_sequence_length": 23460,
+        "refinement_video_sequence_length": 93840,
+        "audio_sequence_length": 376,
+    },
+]
 
 LTX2_LOGGED_GEMM_SHAPES: list[tuple[str, int, int, int]] = [
     ("ltx2.adaln_single.linear", 8160, 36864, 4096),
@@ -250,13 +265,9 @@ def benchmark_fp4_prequant_weight_tflops(x_bf16, weight_bf16, num_runs=50, warmu
 
 def build_configs_for_video_sequence_length(
     video_sequence_length: int,
-    audio_sequence_length: int | None = None,
+    audio_sequence_length: int,
 ):
     configs = []
-    if audio_sequence_length is None:
-        audio_sequence_length = (
-            video_sequence_length * BASE_AUDIO_SEQUENCE_LENGTH // BASE_VIDEO_SEQUENCE_LENGTH
-        )
     for name, m, n, k in LTX2_LOGGED_GEMM_SHAPES:
         if m == BASE_VIDEO_SEQUENCE_LENGTH:
             seq_len = video_sequence_length
@@ -356,24 +367,23 @@ def run_benchmark(
         else:
             print("  (none)")
 
-    for video_sequence_length in BASE_STAGE_VIDEO_SEQUENCE_LENGTHS:
-        base_audio_sequence_length = (
-            video_sequence_length * BASE_AUDIO_SEQUENCE_LENGTH // BASE_VIDEO_SEQUENCE_LENGTH
-        )
-        refinement_video_sequence_length = video_sequence_length * REFINEMENT_STAGE_MULTIPLIER
+    for preset in SEQUENCE_LENGTH_PRESETS:
+        base_video_sequence_length = preset["base_video_sequence_length"]
+        refinement_video_sequence_length = preset["refinement_video_sequence_length"]
+        audio_sequence_length = preset["audio_sequence_length"]
         run_section(
             build_configs_for_video_sequence_length(
-                video_sequence_length,
-                audio_sequence_length=base_audio_sequence_length,
+                base_video_sequence_length,
+                audio_sequence_length=audio_sequence_length,
             ),
-            f"Base Stage | video_seq_len={video_sequence_length}",
+            f"Base Stage | video_seq_len={base_video_sequence_length} | audio_seq_len={audio_sequence_length}",
         )
         run_section(
             build_configs_for_video_sequence_length(
                 refinement_video_sequence_length,
-                audio_sequence_length=base_audio_sequence_length,
+                audio_sequence_length=audio_sequence_length,
             ),
-            f"Refinement Stage | video_seq_len={refinement_video_sequence_length}",
+            f"Refinement Stage | video_seq_len={refinement_video_sequence_length} | audio_seq_len={audio_sequence_length}",
         )
 
 
